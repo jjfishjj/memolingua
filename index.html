@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FluentAI · VARK + 腦波 + 記憶模型 Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--v:#6366F1;--a:#EC4899;--r:#10B981;--k:#F59E0B;--eeg:#06b6d4;
+    --ink:#1f2937;--sub:#6b7280;--line:#eef0f3;--bg:#f6f7f9;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.06)}
+  .demo-banner{background:#ecfeff;border-bottom:1px solid #a5f3fc;font-size:11px;color:#0e7490;text-align:center;padding:6px}
+  .topbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:13px 18px;display:flex;align-items:center;gap:10px;z-index:30}
+  .topbar .logo{font-weight:800;font-size:16px;letter-spacing:-.3px}
+  .topbar .logo span{color:var(--v)}
+  .eegchip{margin-left:auto;font-size:11px;display:flex;align-items:center;gap:5px;background:#ecfeff;color:#0e7490;padding:4px 10px;border-radius:20px;cursor:pointer}
+  .eegchip .dot{width:7px;height:7px;border-radius:99px;background:#94a3b8}
+  .eegchip.on .dot{background:#22c55e;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .flowmap{display:flex;gap:5px;justify-content:center;padding:9px;background:var(--bg)}
+  .flowmap .d{width:7px;height:7px;border-radius:99px;background:#d1d5db}
+  .flowmap .d.on{background:var(--ink);width:20px}
+  .screen{padding:20px 18px 110px;display:none;animation:fade .35s}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  h2{font-size:15px;font-weight:700;margin-bottom:10px}
+  .muted{color:var(--sub);font-size:13px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:17px;margin-top:13px}
+  .btn{display:block;width:100%;padding:14px;border:none;border-radius:15px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:active{transform:scale(.98)}.btn:disabled{background:#e5e7eb;color:#aaa}
+  .btn.ghost{background:#fff;border:1px solid #e3e6ea;color:var(--sub)}
+  .btn.cyan{background:var(--eeg)}
+  .btn-row{display:flex;gap:10px;margin-top:16px}.btn-row .btn{flex:1}
+  .pbar{height:8px;background:#eef0f3;border-radius:99px;overflow:hidden;margin:8px 0 20px}
+  .pbar>div{height:100%;background:linear-gradient(90deg,var(--v),var(--a));border-radius:99px;transition:width .4s}
+  .opt{display:flex;gap:11px;align-items:flex-start;padding:14px;border:2px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer;background:#fff;transition:.15s}
+  .opt .emo{font-size:19px}.opt .txt{font-size:14px;color:#444}
+  .opt.sel[data-t=v]{border-color:var(--v);background:#eef0ff}
+  .opt.sel[data-t=a]{border-color:var(--a);background:#fdeef6}
+  .opt.sel[data-t=r]{border-color:var(--r);background:#eafaf2}
+  .opt.sel[data-t=k]{border-color:var(--k);background:#fff5e6}
+  .opt.sel .chk{margin-left:auto;font-weight:700}
+  .hero{border-radius:22px;padding:20px;color:#fff}
+  .hero .em{font-size:42px}.hero h1{font-size:23px;margin-top:5px}
+  .hero .bw{background:rgba(255,255,255,.22);border-radius:13px;padding:8px 11px;font-size:13px;margin-top:12px}
+  .conf{display:inline-block;background:rgba(255,255,255,.25);font-size:11px;padding:3px 9px;border-radius:99px;margin-top:8px}
+  .barrow{margin-bottom:13px}
+  .barrow .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .bartrack{height:10px;background:#eef0f3;border-radius:99px;overflow:hidden}
+  .bartrack>div{height:100%;border-radius:99px;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+  .sc{border:1px solid var(--line);border-radius:15px;padding:13px;cursor:pointer;background:#fff;transition:.15s}
+  .sc:active{transform:scale(.97)}.sc.top{background:var(--ink);color:#fff}
+  .sc .ic{font-size:23px}.sc .nm{font-weight:700;font-size:13px;margin-top:5px}
+  .sc .ds{font-size:11px;color:var(--sub);margin-top:2px}.sc.top .ds{color:rgba(255,255,255,.7)}
+  .sc .match{font-size:11px;margin-top:7px;color:var(--v);font-weight:600}.sc.top .match{color:#fff}
+  .tag{display:inline-block;font-size:10px;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:99px;margin-top:6px}
+  /* EEG live panel */
+  .eegpanel{background:#0f172a;border-radius:18px;padding:16px;color:#e2e8f0;margin-top:13px}
+  .eegpanel h2{color:#fff}
+  .wave{height:54px;background:#1e293b;border-radius:10px;margin:10px 0;position:relative;overflow:hidden}
+  .wave canvas{width:100%;height:100%}
+  .bands{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:10px}
+  .band{background:#1e293b;border-radius:9px;padding:7px 4px;text-align:center}
+  .band .nm{font-size:9px;color:#94a3b8}.band .vl{font-size:13px;font-weight:700;margin-top:2px}
+  .gauges{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}
+  .gauge{background:#1e293b;border-radius:11px;padding:10px}
+  .gauge .gl{font-size:10px;color:#94a3b8}
+  .gauge .gv{font-size:18px;font-weight:800;margin-top:1px}
+  .gtrack{height:5px;background:#334155;border-radius:99px;margin-top:5px;overflow:hidden}
+  .gtrack>div{height:100%;border-radius:99px;transition:.4s}
+  /* chat */
+  .chat{padding:14px;min-height:300px}
+  .bub{max-width:82%;padding:11px 13px;border-radius:17px;font-size:14px;margin-bottom:9px;animation:fade .3s;white-space:pre-wrap}
+  .bub.ai{background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px}
+  .bub.me{background:var(--ink);color:#fff;margin-left:auto;border-bottom-right-radius:5px}
+  .bub .corr{margin-top:7px;padding-top:7px;border-top:1px dashed #e3e6ea;font-size:12px;color:#555;line-height:1.7}
+  .loadalert{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:12px;padding:9px 12px;border-radius:12px;margin:0 14px 9px;animation:fade .4s}
+  .savedchip{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:11px;padding:7px 11px;border-radius:11px;margin:0 14px 9px;animation:fade .4s}
+  .chatbar{display:flex;gap:8px;padding:11px 14px;border-top:1px solid var(--line);background:#fff;position:sticky;bottom:0}
+  .chatbar input{flex:1;border:1px solid #e3e6ea;border-radius:13px;padding:11px 13px;font-size:14px;outline:none}
+  .chatbar button{padding:0 17px;border:none;background:var(--ink);color:#fff;border-radius:13px;font-weight:600;cursor:pointer}
+  .quick{font-size:11px;color:var(--sub);padding:0 14px 8px}
+  .qchip{display:inline-block;border:1px solid #e3e6ea;border-radius:18px;padding:5px 10px;margin:3px 4px 0 0;font-size:12px;cursor:pointer;background:#fff;color:#444}
+  .ring{display:flex;align-items:center;gap:16px}.ring .big{font-size:38px;font-weight:800}.ring .big small{font-size:15px;color:var(--sub)}
+  .insight{background:#f0f9ff;border:1px solid #e0f2fe;border-radius:13px;padding:11px;font-size:12.5px;color:#075985;line-height:1.7;margin-top:11px}
+  .insight.cyan{background:#ecfeff;border-color:#a5f3fc;color:#0e7490}
+  ul.tips{list-style:none;margin-top:5px}ul.tips li{font-size:13px;color:#555;padding:4px 0;display:flex;gap:8px}ul.tips li::before{content:"→";color:#cbd5e1}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .kpi .b{background:var(--bg);border-radius:13px;padding:11px}.kpi .b .n{font-size:21px;font-weight:800}.kpi .b .l{font-size:11px;color:var(--sub)}
+  .pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--sub);margin-right:5px}
+  /* memory cards */
+  .mcard{border:1px solid var(--line);border-radius:15px;padding:14px;margin-bottom:11px;position:relative}
+  .mcard .mt{font-weight:700;font-size:15px}
+  .mcard .mm{font-size:12px;color:var(--sub);margin-top:2px}
+  .mcard .modchip{position:absolute;top:12px;right:12px;font-size:10px;padding:2px 8px;border-radius:99px}
+  .retbar{height:6px;background:#eef0f3;border-radius:99px;overflow:hidden;margin-top:9px}
+  .retbar>div{height:100%;border-radius:99px}
+  .qbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:11px}
+  .qbtns button{padding:9px 4px;border:1px solid #e3e6ea;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:#fff}
+  .qbtns button:active{transform:scale(.95)}
+  .seg{display:flex;border:1px solid #e3e6ea;border-radius:13px;overflow:hidden;margin-top:11px}
+  .seg button{flex:1;padding:9px;border:none;background:#fff;font-size:13px;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--ink);color:#fff}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);width:90%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:50;display:none}
+  .toast.show{display:block;animation:slideup .4s}
+  @keyframes slideup{from{transform:translate(-50%,80px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+  .deltarow{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:8px}
+  .deltarow .tk{flex:1;height:6px;background:#eef0f3;border-radius:99px;overflow:hidden}.deltarow .tk>div{height:100%}
+  .up{color:var(--r);font-weight:700}.down{color:#ef4444;font-weight:700}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="demo-banner">🎬 DEMO · VARK學習風格 × 腦波EEG分析 × 記憶模型（間隔複習）三源融合系統</div>
+  <div class="topbar">
+    <div class="logo">Fluent<span>AI</span></div>
+    <div class="eegchip" id="eegChip" onclick="toggleEEG()"><span class="dot"></span><span id="eegChipTxt">頭環未連線</span></div>
+  </div>
+  <div class="flowmap" id="flowmap"></div>
+
+  <!-- S0 intro -->
+  <div class="screen active" id="s0">
+    <div style="text-align:center;padding:14px 0">
+      <div style="font-size:50px">🧠</div>
+      <h1 style="margin-top:8px">VARK + 腦波 + 記憶模型</h1>
+      <p class="muted" style="margin-top:8px">三源融合，找出最真實的學習風格<br>並用記憶科學優化你的複習排程</p>
+    </div>
+    <div class="card" style="margin-top:8px">
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+        <span style="font-size:22px">📝</span><div><b style="font-size:14px">第一源：VARK 測驗</b><div class="muted" style="font-size:12px">問卷找出你「以為」的偏好</div></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+        <span style="font-size:22px">💬</span><div><b style="font-size:14px">第二源：對話行為分析</b><div class="muted" style="font-size:12px">從互動找出你「實際」的偏好</div></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="font-size:22px">🧠</span><div><b style="font-size:14px">第三源：腦波 EEG</b><div class="muted" style="font-size:12px">生理訊號揭露你「身體真實」的反應</div></div></div>
+    </div>
+    <button class="btn" style="margin-top:18px" onclick="startQuiz()">開始測驗 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="skipToReport()">⏩ 直接看融合報告</button>
+  </div>
+
+  <!-- S1 quiz -->
+  <div class="screen" id="s1">
+    <div class="muted" style="display:flex;justify-content:space-between"><span id="qIdx"></span><span id="qPct"></span></div>
+    <div class="pbar"><div id="qProg"></div></div>
+    <div id="qContext" class="muted" style="font-style:italic;margin-bottom:6px"></div>
+    <h2 id="qText" style="font-size:17px;line-height:1.5"></h2>
+    <p class="muted" style="margin:4px 0 14px">可選擇多個答案</p>
+    <div id="qOpts"></div>
+    <div class="btn-row"><button class="btn ghost" id="qBack" onclick="prevQ()">上一題</button><button class="btn" id="qNext" onclick="nextQ()" disabled>下一題 →</button></div>
+  </div>
+
+  <!-- S2 fusion report -->
+  <div class="screen" id="s2">
+    <div class="hero" id="hero">
+      <div class="em" id="heroEmo">👁️</div>
+      <div style="opacity:.75;font-size:12px">三源融合 · 主要學習風格</div>
+      <h1 id="heroLabel"></h1>
+      <div id="heroSec" style="opacity:.85;font-size:13px;margin-top:3px"></div>
+      <div class="conf" id="heroConf">融合信賴度 88%</div>
+      <div class="bw" id="heroBw"></div>
+    </div>
+
+    <div class="card">
+      <h2>三源融合雷達圖</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:8px">📝測驗　💬行為　🧠腦波　⭐融合輪廓</p>
+      <canvas id="radar" height="250"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>融合後 VARK 分佈</h2>
+      <div id="bars"></div>
+    </div>
+
+    <div class="insight cyan" id="eegInsight"></div>
+    <div class="insight" id="aiNote"></div>
+
+    <button class="btn" style="margin-top:16px" onclick="goScenario()">用我的風格開始練習 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="show('s1');curQ=0;renderQ()">重新測驗</button>
+  </div>
+
+  <!-- S3 scenario -->
+  <div class="screen" id="s3">
+    <h1>選擇練習情境</h1>
+    <p class="muted">AI 依你的 <b id="scDom"></b> 風格排序</p>
+    <div class="grid" id="scGrid"></div>
+  </div>
+
+  <!-- S4 chat -->
+  <div class="screen" id="s4" style="padding:0">
+    <div style="padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px">
+      <div><div style="font-weight:700;font-size:14px" id="chatTitle"></div>
+        <div class="muted" style="font-size:11px">English · <span id="chatMode"></span></div></div>
+      <button class="btn ghost" style="width:auto;padding:7px 13px;margin-left:auto;font-size:13px" onclick="endChat()">結束</button>
+    </div>
+    <!-- mini EEG strip -->
+    <div id="eegStrip" style="display:none;padding:8px 16px;background:#0f172a;color:#cbd5e1;font-size:11px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#22c55e">● EEG</span>
+        <span>專注 <b id="msEng">—</b></span>
+        <span>負荷 <b id="msLoad">—</b></span>
+        <span>編碼 <b id="msEnc">—</b></span>
+        <span id="msState" style="margin-left:auto;color:#fbbf24"></span>
+      </div>
+    </div>
+    <div class="chat" id="chatBody"></div>
+    <div class="quick">💡 試試：<div id="quickChips"></div></div>
+    <div class="chatbar"><input id="chatInput" placeholder="輸入英文..." onkeydown="if(event.key==='Enter')sendMsg()"><button onclick="sendMsg()">送出</button></div>
+  </div>
+
+  <!-- S5 feedback -->
+  <div class="screen" id="s5">
+    <h1>對話回饋報表</h1>
+    <p class="muted" id="fbScn"></p>
+    <div class="card">
+      <div class="ring"><div class="big" id="overallScore"></div>
+        <div style="flex:1"><div class="muted" style="font-size:12px">綜合表現</div><div style="font-weight:700;color:var(--r)">表現優異 · 持續進步中</div></div></div>
+      <div style="margin-top:14px" id="scoreBars"></div>
+      <div class="insight" id="scoreFeedback"></div>
+    </div>
+    <div class="card">
+      <h2>🧠 腦波學習狀態回顧</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:10px">本次對話期間的生理專注與記憶編碼曲線</p>
+      <canvas id="eegTimeline" height="200"></canvas>
+      <div class="insight cyan" id="eegReview"></div>
+    </div>
+    <div class="card">
+      <h2>📊 本次 VARK 行為 × 腦波驗證</h2>
+      <canvas id="behaviorChart" height="210"></canvas>
+      <div class="insight" id="behaviorInsight"></div>
+    </div>
+    <div class="card">
+      <h2>💾 本次新學項目（已存入記憶庫）</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:6px">編碼強度由當下腦波 Theta-Gamma 耦合度決定，影響首次複習間隔</p>
+      <div id="newItems"></div>
+    </div>
+    <button class="btn cyan" style="margin-top:16px" onclick="goMemory()">📅 前往記憶複習中心 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="show('s6')">📋 長期學習儀表板</button>
+  </div>
+
+  <!-- S6 dashboard -->
+  <div class="screen" id="s6">
+    <h1>學習儀表板</h1>
+    <p class="muted">完整學習旅程總覽</p>
+    <div class="kpi" style="margin-top:13px">
+      <div class="b"><div class="n">14</div><div class="l">累計練習</div></div>
+      <div class="b"><div class="n">8.1</div><div class="l">平均分數</div></div>
+      <div class="b"><div class="n">73%</div><div class="l">記憶留存率</div></div>
+      <div class="b"><div class="n">14:00</div><div class="l">最佳學習時段 🧠</div></div>
+    </div>
+    <div class="card"><h2>各能力成長曲線</h2><canvas id="growthChart" height="210"></canvas></div>
+    <div class="card">
+      <h2>🧠 腦波 × VARK 一致性</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:8px">測驗自評與腦波實測的吻合度</p>
+      <div id="consistency"></div>
+      <div class="insight cyan">📌 你的腦波在<b>視覺任務</b>時 Alpha 波明顯增強，與自評高度吻合(91%)。但<b>聽覺任務</b>時 Theta 波比自評更活躍，代表你的聽覺學習潛力被低估——AI 將適度增加聽力練習。</div>
+    </div>
+    <button class="btn" style="margin-top:16px" onclick="goScenario()">繼續練習 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="show('s0')">🔄 重新體驗流程</button>
+  </div>
+
+  <!-- S7 memory review -->
+  <div class="screen" id="s7">
+    <h1>📅 記憶複習中心</h1>
+    <p class="muted">依遺忘曲線排程，用你的主導感官複習</p>
+    <div class="kpi" style="margin-top:13px">
+      <div class="b"><div class="n" id="dueCount">3</div><div class="l">今日待複習</div></div>
+      <div class="b"><div class="n" style="color:var(--r)">42</div><div class="l">已掌握項目</div></div>
+    </div>
+    <div class="card"><h2>遺忘曲線 vs 間隔複習</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:8px">複習(綠點)把記憶從遺忘邊緣拉回，間隔越拉越長</p>
+      <canvas id="forgetChart" height="200"></canvas></div>
+    <div class="seg"><button class="on" id="segDue" onclick="memTab('due')">待複習</button><button id="segAll" onclick="memTab('all')">記憶庫</button></div>
+    <div id="memList" style="margin-top:13px"></div>
+    <button class="btn ghost" style="margin-top:16px" onclick="show('s6')">回儀表板</button>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast">
+  <div style="display:flex;align-items:center;gap:8px"><span style="font-size:17px">🧠</span><b style="font-size:14px">三源輪廓已更新</b>
+    <span style="margin-left:auto;color:#cbd5e1;cursor:pointer" onclick="hideToast()">✕</span></div>
+  <div id="toastBody"></div>
+  <div style="text-align:center;margin-top:9px"><a style="font-size:12px;color:var(--sub);cursor:pointer" onclick="hideToast();show('s5')">查看完整報表 →</a></div>
+</div>
+
+<script>
+/* ===== 資料 ===== */
+const QUESTIONS=[
+ {ctx:"例如：學現在完成式",q:"學新文法規則時你最喜歡？",o:{v:"看時間軸圖表",a:"聽例句並跟讀",r:"讀規則與例句列表",k:"直接在對話中使用"}},
+ {ctx:"",q:"背單字哪種最有效？",o:{v:"顏色標記、心智圖",a:"朗讀錄音反覆聽",r:"寫筆記整理",k:"真實對話中造句"}},
+ {ctx:"",q:"聽不懂時你會？",o:{v:"重看字幕觀察表情",a:"反覆聽注意語調",r:"查逐字稿逐句確認",k:"依情境猜並回應"}},
+ {ctx:"",q:"哪種回饋最有幫助？",o:{v:"顏色圖示標錯誤",a:"直接說哪裡發音錯",r:"詳細文字修正說明",k:"給情境重新練一次"}},
+ {ctx:"在英語系國家",q:"迷路問路你怎麼準備？",o:{v:"地圖確認路線",a:"心裡練習要說的話",r:"查好句子準備念",k:"直接走過去問用手勢"}},
+ {ctx:"",q:"喜歡哪種進度呈現？",o:{v:"雷達圖儀表板",a:"語音播報摘要",r:"文字報告列強弱項",k:"看完成哪些任務"}},
+];
+const CARDS={
+ v:{emoji:'👁️',label:'視覺型學習者',color:'#6366F1',bw:'Alpha 波 8–12 Hz · 放鬆專注',tips:['用心智圖整理單字','看影片注意字幕排版','把規則畫成圖表'],ai:'🤖 AI 用符號標記、before/after 對比格式，描述可想像的畫面。'},
+ a:{emoji:'🎧',label:'聽覺型學習者',color:'#EC4899',bw:'Theta–Alpha 波 4–12 Hz · 語言記憶',tips:['朗讀並錄音回聽','用Podcast沉浸','注意語調節奏'],ai:'🤖 AI 用對話語氣、引導跟讀、強調語音節奏。'},
+ r:{emoji:'📖',label:'讀寫型學習者',color:'#10B981',bw:'Beta 波 13–30 Hz · 邏輯分析',tips:['建立單字筆記本','閱讀後寫摘要','研究文法邏輯'],ai:'🤖 AI 提供結構化解釋、編號清單、多個例句。'},
+ k:{emoji:'🤸',label:'體驗型學習者',color:'#F59E0B',bw:'Gamma–Theta 波 · 動作整合',tips:['角色扮演練對話','模擬真實情境','修正當任務立即重試'],ai:'🤖 AI 把修正化為任務、要求立即重試、以真實情境包裝。'},
+};
+const SCENARIOS=[
+ {id:'restaurant',ic:'🍽️',nm:'餐廳點餐',ds:'點餐詢問',aff:{v:.4,a:.6,r:.2,k:.9}},
+ {id:'interview',ic:'💼',nm:'英文面試',ds:'情境問答',aff:{v:.3,a:.6,r:.4,k:.95}},
+ {id:'image',ic:'🖼️',nm:'描述圖片',ds:'描述場景',aff:{v:.95,a:.3,r:.4,k:.2}},
+ {id:'debate',ic:'🎤',nm:'辯論討論',ds:'說服反駁',aff:{v:.2,a:.95,r:.5,k:.4}},
+ {id:'email',ic:'📧',nm:'商業郵件',ds:'書信寫作',aff:{v:.3,a:.2,r:.95,k:.3}},
+ {id:'travel',ic:'✈️',nm:'旅遊規劃',ds:'討論行程',aff:{v:.85,a:.5,r:.5,k:.7}},
+];
+const CHAT_FLOW={v:"Welcome! 🍽️ Picture a cozy Italian restaurant — soft lights, fresh basil.\nI'm your waiter. Here's the menu. What would you like to order?",
+ a:"Welcome! *warm voice* What can I get started for you today? Just say it out loud.",
+ r:"Welcome. Menu:\n1. Margherita Pizza\n2. Spaghetti Carbonara\n3. Caesar Salad\nWhich would you order?",
+ k:"You walk into a busy restaurant. 🎬 Your task: order a main dish. Go — what do you say?"};
+const QUICK=["I want pizza","Can I see the menu?","I'd like to order spaghetti, please"];
+const NEW_ITEMS=[
+ {t:"I'd like to...",m:"我想要…（禮貌句型）",mod:'k',enc:.82},
+ {t:"recommend",m:"推薦 (v.)",mod:'a',enc:.71},
+ {t:"appetizer",m:"開胃菜 (n.)",mod:'v',enc:.64},
+];
+/* ===== FSRS v4.5 引擎（取代簡易 SM-2）===== */
+const FSRS_W=[0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0234,1.616,0.1544,1.0824,1.9813,0.0953,0.2975,2.2042,0.2407,2.9466];
+const FSRS_DECAY=-0.5, FSRS_FACTOR=Math.pow(0.9,1/FSRS_DECAY)-1, REQ_RET=0.9;
+function fsrsNew(){return{stability:0,difficulty:0,due:Date.now(),lastReview:null,reps:0,lapses:0,state:'new'};}
+function fsrsRet(c,now){if(!c.lastReview||c.stability<=0)return 0;const t=(now-c.lastReview)/86400000;return Math.pow(1+FSRS_FACTOR*t/c.stability,FSRS_DECAY);}
+function fsrsIvl(s){return Math.max(1,Math.round((s/FSRS_FACTOR)*(Math.pow(REQ_RET,1/FSRS_DECAY)-1)));}
+function fsrsInitD(r){return clamp(FSRS_W[4]-Math.exp(FSRS_W[5]*(r-1))+1,1,10);}
+function fsrsReview(c,rating,now,opt={}){ // rating 1=Again 2=Hard 3=Good 4=Easy
+ const n={...c,reps:c.reps+1,lastReview:now};
+ const engAdj=opt.eng!=null?(opt.eng-.5)*.1:0;
+ if(c.state==='new'){
+   n.difficulty=fsrsInitD(rating);
+   n.stability=Math.max(.1,FSRS_W[rating-1]);
+   if(opt.enc!=null)n.stability*=(1+opt.enc*0.6); // ⭐EEG編碼加成
+   n.state=rating===1?'learning':'review';
+ }else{
+   const R=clamp(fsrsRet(c,now)+engAdj,0,1);
+   n.difficulty=clamp(FSRS_W[7]*fsrsInitD(4)+(1-FSRS_W[7])*(c.difficulty-FSRS_W[6]*(rating-3)),1,10);
+   if(rating===1){n.stability=FSRS_W[11]*Math.pow(c.difficulty,-FSRS_W[12])*(Math.pow(c.stability+1,FSRS_W[13])-1)*Math.exp((1-R)*FSRS_W[14]);n.lapses++;n.state='relearning';}
+   else{const hp=rating===2?FSRS_W[15]:1,eb=rating===4?FSRS_W[16]:1;n.stability=c.stability*(1+Math.exp(FSRS_W[8])*(11-c.difficulty)*Math.pow(c.stability,-FSRS_W[9])*(Math.exp((1-R)*FSRS_W[10])-1)*hp*eb);n.state='review';}
+ }
+ const iv=fsrsIvl(n.stability);n.due=now+iv*86400000;return{card:n,interval:iv};
+}
+// 每張記憶卡帶 FSRS state（用編碼強度初始化，模擬已學過）
+function seedCard(enc,daysAgo){let c=fsrsNew();const t0=Date.now()-daysAgo*86400000;c=fsrsReview(c,3,t0,{enc}).card;return c;}
+let MEMORY=[
+ {t:"I'd like to...",m:"我想要…",mod:'k',fsrs:seedCard(.82,3)},
+ {t:"How much is it?",m:"多少錢？",mod:'a',fsrs:seedCard(.71,4)},
+ {t:"medium-rare",m:"五分熟",mod:'v',fsrs:seedCard(.64,2)},
+ {t:"reservation",m:"預約",mod:'r',fsrs:seedCard(.78,1)},
+ {t:"Could you...?",m:"能否…？",mod:'a',fsrs:seedCard(.85,1)},
+];
+function memDue(m){return m.fsrs.due<=Date.now();}
+
+/* ===== 狀態 ===== */
+let answers=QUESTIONS.map(()=>({}));let curQ=0;
+let scores={v:0,a:0,r:0,k:0};let dominant='v',secondary='a';
+let eegOn=false,eegTimer=null,waveTimer=null;
+let radar,behaviorChart,growthChart,eegTimeline,forgetChart;
+let chatStep=0,chatScn={};
+// EEG 模擬即時值
+let eeg={delta:8,theta:22,alpha:34,beta:24,gamma:12,eng:.62,load:.38,enc:.7,relax:.6};
+
+/* ===== 導航 ===== */
+const SCREENS=['s0','s1','s2','s3','s4','s5','s6','s7'];
+const NAMES=['首頁','測驗','融合報告','選情境','對話','回饋報表','儀表板','記憶複習'];
+function show(id){SCREENS.forEach(s=>document.getElementById(s).classList.remove('active'));
+ document.getElementById(id).classList.add('active');renderFlow(SCREENS.indexOf(id));window.scrollTo(0,0);}
+function renderFlow(a){document.getElementById('flowmap').innerHTML=SCREENS.map((_,i)=>`<div class="d ${i===a?'on':''}"></div>`).join('');}
+
+/* ===== EEG 模擬 ===== */
+function toggleEEG(){eegOn=!eegOn;const c=document.getElementById('eegChip');
+ if(eegOn){c.classList.add('on');document.getElementById('eegChipTxt').textContent='Muse 頭環連線中';startEEG();}
+ else{c.classList.remove('on');document.getElementById('eegChipTxt').textContent='頭環未連線';stopEEG();}}
+function startEEG(){if(eegTimer)return;eegTimer=setInterval(tickEEG,900);}
+function stopEEG(){clearInterval(eegTimer);eegTimer=null;clearInterval(waveTimer);waveTimer=null;}
+function tickEEG(){
+ const j=()=>(Math.random()-.5)*6;
+ eeg.delta=clamp(eeg.delta+j(),3,15);eeg.theta=clamp(eeg.theta+j(),12,35);
+ eeg.alpha=clamp(eeg.alpha+j(),18,45);eeg.beta=clamp(eeg.beta+j(),12,38);eeg.gamma=clamp(eeg.gamma+j(),5,22);
+ eeg.eng=clamp(eeg.beta/(eeg.alpha+eeg.theta),0,1);
+ eeg.load=clamp(eeg.theta/eeg.alpha*0.7,0,1);
+ eeg.enc=clamp((eeg.theta*eeg.gamma)/420,0,1);
+ // mini strip
+ if(document.getElementById('s4').classList.contains('active')) updateStrip();
+}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function updateStrip(){
+ document.getElementById('msEng').textContent=Math.round(eeg.eng*100)+'%';
+ document.getElementById('msLoad').textContent=Math.round(eeg.load*100)+'%';
+ document.getElementById('msEnc').textContent=Math.round(eeg.enc*100)+'%';
+ const st=document.getElementById('msState');
+ if(eeg.load>.62){st.textContent='⚠ 認知負荷偏高';st.style.color='#f87171';}
+ else if(eeg.enc>.6){st.textContent='✨ 記憶編碼活躍';st.style.color='#34d399';}
+ else{st.textContent='● 狀態良好';st.style.color='#fbbf24';}
+}
+
+/* ===== 測驗 ===== */
+function startQuiz(){curQ=0;answers=QUESTIONS.map(()=>({}));show('s1');renderQ();}
+function renderQ(){const Q=QUESTIONS[curQ];const emo={v:'👁️',a:'🎧',r:'📖',k:'🤸'};
+ document.getElementById('qIdx').textContent=`問題 ${curQ+1} / ${QUESTIONS.length}`;
+ const p=Math.round((curQ+1)/QUESTIONS.length*100);
+ document.getElementById('qPct').textContent=p+'%';document.getElementById('qProg').style.width=p+'%';
+ document.getElementById('qContext').textContent=Q.ctx;document.getElementById('qText').textContent=Q.q;
+ document.getElementById('qOpts').innerHTML=['v','a','r','k'].map(t=>
+  `<div class="opt ${answers[curQ][t]?'sel':''}" data-t="${t}" onclick="toggleOpt('${t}')"><span class="emo">${emo[t]}</span><span class="txt">${Q.o[t]}</span>${answers[curQ][t]?'<span class="chk">✓</span>':''}</div>`).join('');
+ document.getElementById('qBack').style.visibility=curQ===0?'hidden':'visible';
+ document.getElementById('qNext').textContent=curQ===QUESTIONS.length-1?'看融合結果 →':'下一題 →';
+ document.getElementById('qNext').disabled=!Object.values(answers[curQ]).some(x=>x);}
+function toggleOpt(t){answers[curQ][t]=!answers[curQ][t];renderQ();}
+function prevQ(){if(curQ>0){curQ--;renderQ();}}
+function nextQ(){if(curQ<QUESTIONS.length-1){curQ++;renderQ();}else computeResult();}
+function computeResult(){scores={v:0,a:0,r:0,k:0};
+ answers.forEach(a=>['v','a','r','k'].forEach(t=>{if(a[t])scores[t]++;}));
+ if(scores.v+scores.a+scores.r+scores.k<3)scores={v:5,a:3,r:2,k:4};
+ const s=Object.entries(scores).sort((a,b)=>b[1]-a[1]);dominant=s[0][0];secondary=s[1][0];
+ renderReport();show('s2');}
+function skipToReport(){scores={v:6,a:3,r:2,k:4};dominant='v';secondary='k';if(!eegOn)toggleEEG();renderReport();show('s2');}
+function pct(t){const tot=scores.v+scores.a+scores.r+scores.k;return Math.round(scores[t]/tot*100);}
+
+/* ===== 融合報告 ===== */
+function renderReport(){
+ const c=CARDS[dominant];const h=document.getElementById('hero');
+ h.style.background=`linear-gradient(135deg,${c.color}cc,${c.color})`;
+ document.getElementById('heroEmo').textContent=c.emoji;
+ document.getElementById('heroLabel').textContent=c.label;
+ document.getElementById('heroSec').textContent='次要：'+CARDS[secondary].label+' '+CARDS[secondary].emoji;
+ document.getElementById('heroBw').textContent='🧠 '+c.bw;
+ document.getElementById('heroConf').textContent='融合信賴度 '+(eegOn?'88%':'64% · 連接頭環可提升');
+ document.getElementById('scDom').textContent=c.label;
+ const META=[['v','Visual','#6366F1'],['a','Auditory','#EC4899'],['r','Reading','#10B981'],['k','Kinesthetic','#F59E0B']];
+ // 三源資料
+ const quiz=[pct('v'),pct('a'),pct('r'),pct('k')];
+ const beh=quiz.map((q,i)=>clamp([q-8,q+5,q-5,q+10][i],5,92));
+ const eegV=eegOn?[quiz[0]+6,quiz[1]+9,quiz[2]-8,quiz[3]+3].map(x=>clamp(x,5,92)):null;
+ const blend=quiz.map((q,i)=>{
+   if(eegOn)return Math.round(q*0.3+beh[i]*0.4+eegV[i]*0.3);
+   return Math.round(q*0.4+beh[i]*0.6);});
+ const bsum=blend.reduce((a,b)=>a+b,0);
+ document.getElementById('bars').innerHTML=META.map(([t,l,col],i)=>{
+   const v=Math.round(blend[i]/bsum*100);
+   return `<div class="barrow"><div class="lab"><span>${l}</span><span style="color:${col};font-weight:700">${v}%</span></div><div class="bartrack"><div data-w="${v}" style="background:${col}"></div></div></div>`;}).join('');
+ setTimeout(()=>document.querySelectorAll('#bars .bartrack>div').forEach(d=>d.style.width=d.dataset.w+'%'),100);
+ document.getElementById('eegInsight').innerHTML=eegOn
+  ?'🧠 <b>腦波驗證：</b>偵測到你在情境題時 <b>Theta 波(記憶編碼)</b>顯著增強，腦波實測的<b>體驗型(K)</b>傾向比問卷自評高 +9%，顯示你身體其實更適合「做中學」。系統已將此納入融合。'
+  :'🧠 <b>尚未連接腦波頭環</b>　點右上角「頭環未連線」即可加入第三源 EEG 分析，融合信賴度可從 64% 提升至 88%。';
+ document.getElementById('aiNote').innerHTML=c.ai;
+ // radar
+ if(radar)radar.destroy();
+ const ds=[
+  {label:'📝測驗',data:quiz,borderColor:'#6366F1',backgroundColor:'rgba(99,102,241,.10)',borderWidth:1.5},
+  {label:'💬行為',data:beh,borderColor:'#EC4899',backgroundColor:'rgba(236,72,153,.10)',borderWidth:1.5},
+ ];
+ if(eegOn)ds.push({label:'🧠腦波',data:eegV,borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.10)',borderWidth:1.5,borderDash:[4,3]});
+ ds.push({label:'⭐融合',data:blend,borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.20)',borderWidth:2.5});
+ radar=new Chart(document.getElementById('radar'),{type:'radar',
+  data:{labels:['Visual','Auditory','Reading','Kinesthetic'],datasets:ds},
+  options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:11}}}}}});
+}
+
+/* ===== 情境 ===== */
+function goScenario(){
+ const tot=scores.v+scores.a+scores.r+scores.k;
+ const bl={v:scores.v/tot,a:scores.a/tot,r:scores.r/tot,k:scores.k/tot};
+ const list=SCENARIOS.map(s=>({...s,m:bl.v*s.aff.v+bl.a*s.aff.a+bl.r*s.aff.r+bl.k*s.aff.k})).sort((a,b)=>b.m-a.m);
+ document.getElementById('scGrid').innerHTML=list.map((s,i)=>
+  `<div class="sc ${i<2?'top':''}" onclick="startChat('${s.ic}','${s.nm}')"><div class="ic">${s.ic}</div>${i<2?'<span class="tag">✨推薦</span>':''}<div class="nm">${s.nm}</div><div class="ds">${s.ds}</div><div class="match">${Math.round(s.m*100)}% 適配</div></div>`).join('');
+ show('s3');}
+
+/* ===== 對話 ===== */
+function startChat(ic,nm){chatScn={ic,nm};chatStep=0;
+ document.getElementById('chatTitle').textContent=ic+' '+nm+'情境';
+ document.getElementById('chatMode').textContent=CARDS[dominant].label+'模式';
+ document.getElementById('chatBody').innerHTML='';
+ document.getElementById('quickChips').innerHTML=QUICK.map(q=>`<span class="qchip" onclick="document.getElementById('chatInput').value=this.textContent">${q}</span>`).join('');
+ document.getElementById('eegStrip').style.display=eegOn?'block':'none';
+ if(eegOn)updateStrip();
+ show('s4');setTimeout(()=>aiSay(CHAT_FLOW[dominant]),400);}
+function aiSay(t,c){const b=document.getElementById('chatBody');const d=document.createElement('div');d.className='bub ai';
+ d.innerHTML=t.replace(/\n/g,'<br>')+(c?`<div class="corr">${c}</div>`:'');b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function meSay(t){const b=document.getElementById('chatBody');const d=document.createElement('div');d.className='bub me';d.textContent=t;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function sysNote(html,cls){const b=document.getElementById('chatBody');const d=document.createElement('div');d.className=cls;d.style.margin='0 0 9px';d.innerHTML=html;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function sendMsg(){const inp=document.getElementById('chatInput');const v=inp.value.trim();if(!v)return;
+ meSay(v);inp.value='';chatStep++;
+ const corr={v:`✏️ "${v}"<br>✅ "I'd like to order a pizza, please."<br>📌 "I'd like to..." 更禮貌`,
+  a:`聽聽差別 🎧 更道地："I'd like to order..." 試著念念看連音。`,
+  r:`修正：<br>1.原句 ${v}<br>2.加 "please" 更禮貌<br>3.句型 I would like + to V`,
+  k:`不錯！再試一次 🎬：服務生問「Anything to drink?」你怎麼回？`};
+ // EEG 互動：負荷高就提示
+ if(eegOn && eeg.load>.55){
+   sysNote('🧠 偵測到認知負荷偏高（'+Math.round(eeg.load*100)+'%）— AI 已自動<b>放慢語速、縮短句子</b>',' loadalert');
+   eeg.load=clamp(eeg.load-.2,0,1);
+ }
+ setTimeout(()=>{
+   if(eegOn && eeg.enc>.55)sysNote('💾 偵測到記憶編碼活躍，本句型已標記為<b>高留存</b>，首次複習間隔延長',' savedchip');
+   if(chatStep>=2)aiSay("Perfect! Your order is set 👨‍🍳 Great job!\n（已達成目標，可結束查看回饋報表）",corr[dominant]);
+   else aiSay("Excellent! Anything to drink with that?",corr[dominant]);
+ },500);}
+function endChat(){renderFeedback();showToast();show('s5');}
+
+/* ===== 回饋 ===== */
+function renderFeedback(){
+ document.getElementById('fbScn').textContent=chatScn.ic+' '+chatScn.nm+'情境 · English';
+ const s={fluency:8.2,grammar:7.8,vocab:8.6,logic:9.0};
+ const ov=((s.fluency+s.grammar+s.vocab+s.logic)/4).toFixed(1);
+ document.getElementById('overallScore').innerHTML=ov+'<small>/10</small>';
+ const SB=[['流暢度',s.fluency,'#6366F1'],['文法',s.grammar,'#EC4899'],['詞彙',s.vocab,'#10B981'],['邏輯',s.logic,'#F59E0B']];
+ document.getElementById('scoreBars').innerHTML=SB.map(([l,v,c])=>`<div class="barrow"><div class="lab"><span>${l}</span><span style="color:${c};font-weight:700">${v}/10</span></div><div class="bartrack"><div data-w="${v*10}" style="background:${c}"></div></div></div>`).join('');
+ setTimeout(()=>document.querySelectorAll('#scoreBars .bartrack>div').forEach(d=>d.style.width=d.dataset.w+'%'),100);
+ document.getElementById('scoreFeedback').innerHTML='💬 <b>AI 點評：</b>表達清晰、邏輯流暢。建議多練 "I would like to..." 禮貌句型並加入形容詞。整體進步明顯！';
+ // EEG timeline
+ if(eegTimeline)eegTimeline.destroy();
+ const labels=['0:00','0:30','1:00','1:30','2:00','2:30'];
+ eegTimeline=new Chart(document.getElementById('eegTimeline'),{type:'line',
+  data:{labels,datasets:[
+   {label:'專注度',data:[55,62,70,58,75,80],borderColor:'#06b6d4',tension:.4,pointRadius:2},
+   {label:'記憶編碼',data:[40,48,65,72,68,74],borderColor:'#22c55e',tension:.4,pointRadius:2},
+   {label:'認知負荷',data:[35,42,58,66,50,44],borderColor:'#f59e0b',tension:.4,pointRadius:2,borderDash:[4,3]},
+  ]},options:{plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+ document.getElementById('eegReview').innerHTML=eegOn
+  ?'🧠 <b>學習狀態回顧：</b>1:00 時你的記憶編碼達峰值(72%)，此時學的「I\'d like to...」綁定最牢；1:30 偵測到負荷上升，AI 即時放慢後負荷回落。整體專注度優於你的個人平均 +12%。'
+  :'🧠 未連接頭環，此區為示意資料。連接後可獲得真實生理學習狀態分析。';
+ // behavior
+ if(behaviorChart)behaviorChart.destroy();
+ const beh=[pct('v')-8,pct('a')+5,pct('r')-5,pct('k')+10].map(x=>clamp(x,8,92));
+ behaviorChart=new Chart(document.getElementById('behaviorChart'),{type:'bar',
+  data:{labels:['Visual','Auditory','Reading','Kinesthetic'],datasets:[{data:beh,backgroundColor:['#6366F1','#EC4899','#10B981','#F59E0B'],borderRadius:6}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+ document.getElementById('behaviorInsight').innerHTML='🔍 <b>行為×腦波交叉驗證：</b>你頻繁要求情境化練習，<b>體驗型</b>行為訊號 <span class="up">+10%</span>，且腦波 Gamma 同步增強——兩源一致，確認體驗型傾向真實可信。';
+ // new items
+ document.getElementById('newItems').innerHTML=NEW_ITEMS.map(it=>{
+   const modc={v:'#6366F1',a:'#EC4899',r:'#10B981',k:'#F59E0B'}[it.mod];
+   const modn={v:'👁️視覺',a:'🎧聽覺',r:'📖讀寫',k:'🤸體驗'}[it.mod];
+   const fc=fsrsReview(fsrsNew(),3,Date.now(),{enc:it.enc}).interval;
+   const days=fc+'天後';
+   return `<div class="mcard"><div class="mt">${it.t}</div><div class="mm">${it.m}</div>
+     <span class="modchip" style="background:${modc}22;color:${modc}">${modn}</span>
+     <div style="font-size:11px;color:var(--sub);margin-top:8px">編碼強度 ${Math.round(it.enc*100)}% · 首次複習：<b>${days}</b></div>
+     <div class="retbar"><div style="width:${Math.round(it.enc*100)}%;background:${modc}"></div></div></div>`;}).join('');
+ drawDashboard();
+}
+
+/* ===== 儀表板 ===== */
+function drawDashboard(){
+ if(growthChart)growthChart.destroy();
+ growthChart=new Chart(document.getElementById('growthChart'),{type:'line',
+  data:{labels:['第1週','第2週','第3週','第4週'],datasets:[
+   {label:'流暢度',data:[6.5,7,7.6,8.2],borderColor:'#6366F1',tension:.4},
+   {label:'文法',data:[6,6.8,7.2,7.8],borderColor:'#EC4899',tension:.4},
+   {label:'詞彙',data:[6.8,7.4,8,8.6],borderColor:'#10B981',tension:.4},
+  ]},options:{plugins:{legend:{labels:{boxWidth:10,font:{size:11}}}},scales:{y:{min:5,max:10}}}});
+ const CN=[['視覺型',91,'#6366F1'],['體驗型',79,'#F59E0B'],['聽覺型',58,'#EC4899'],['讀寫型',44,'#10B981']];
+ document.getElementById('consistency').innerHTML=CN.map(([l,v,c])=>`<div class="barrow"><div class="lab"><span>${l}</span><span style="color:${c};font-weight:700">${v}%</span></div><div class="bartrack"><div style="width:${v}%;background:${c}"></div></div></div>`).join('');
+}
+
+/* ===== 記憶複習 ===== */
+function goMemory(){renderForget();memTab('due');show('s7');}
+function renderForget(){
+ if(forgetChart)forgetChart.destroy();
+ // 用真正的 FSRS 公式生成「遺忘→複習回升」鋸齒曲線（模擬同一張卡 30 天歷程）
+ const labels=[],data=[],pts=[];const SPAN=30,STEP=0.5;
+ let c2=fsrsNew();let lr=0;c2=fsrsReview(c2,3,0,{enc:.75}).card;lr=0;
+ let nextDue=fsrsIvl(c2.stability);
+ for(let d=0;d<=SPAN;d+=STEP){
+   if(d>=nextDue){c2=fsrsReview(c2,3,d*86400000,{eng:.6}).card;lr=d;pts.push(d);nextDue=d+fsrsIvl(c2.stability);}
+   const t=(d-lr);const R=c2.stability>0?Math.pow(1+FSRS_FACTOR*t/c2.stability,FSRS_DECAY):1;
+   labels.push(d);data.push(Math.round(clamp(R,0,1)*100));
+ }
+ forgetChart=new Chart(document.getElementById('forgetChart'),{type:'line',
+  data:{labels,datasets:[{label:'可提取性 R(t)',data,borderColor:'#6366F1',backgroundColor:'rgba(99,102,241,.1)',fill:true,tension:.25,
+    pointRadius:labels.map(d=>pts.includes(d)?5:0),pointBackgroundColor:'#22c55e'}]},
+  options:{plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>'第'+c[0].label+'天',label:c=>'R='+c.raw+'%'}}},
+   scales:{y:{max:105,ticks:{callback:v=>v+'%'}},x:{title:{display:true,text:'天數（綠點=FSRS 排定的複習，間隔越拉越長）',font:{size:10}},ticks:{callback:(v,i)=>i%4===0?labels[i]:''}}}}});
+}
+function memTab(t){document.getElementById('segDue').classList.toggle('on',t==='due');
+ document.getElementById('segAll').classList.toggle('on',t==='all');
+ const now=Date.now();
+ const list=t==='due'?MEMORY.filter(memDue):MEMORY;
+ const modc={v:'#6366F1',a:'#EC4899',r:'#10B981',k:'#F59E0B'};
+ const modn={v:'👁️視覺卡',a:'🎧語音複習',r:'📖文字卡',k:'🤸情境重練'};
+ document.getElementById('memList').innerHTML=list.map(m=>{
+   const c=modc[m.mod];const idx=MEMORY.indexOf(m);
+   const ret=memDue(m)?fsrsRet(m.fsrs,now):fsrsRet(m.fsrs,now); // R(t)
+   const retPct=Math.round(ret*100);
+   const dueTxt=memDue(m)?'<span style="color:#ef4444">今日到期</span>':`${Math.ceil((m.fsrs.due-now)/86400000)} 天後`;
+   return `<div class="mcard"><div class="mt">${m.t}</div><div class="mm">${m.m}</div>
+    <span class="modchip" style="background:${c}22;color:${c}">${modn[m.mod]}</span>
+    <div style="font-size:11px;color:var(--sub);margin-top:8px">可提取性 R=${retPct}% · 穩定度 S=${m.fsrs.stability.toFixed(1)}天 · 難度 D=${m.fsrs.difficulty.toFixed(1)} · ${dueTxt}</div>
+    <div class="retbar"><div style="width:${retPct}%;background:${ret<.5?'#ef4444':c}"></div></div>
+    ${memDue(m)?`<div class="qbtns">
+      <button onclick="grade(${idx},1)" style="color:#ef4444">忘了</button>
+      <button onclick="grade(${idx},2)" style="color:#f59e0b">模糊</button>
+      <button onclick="grade(${idx},3)" style="color:#10b981">記得</button>
+      <button onclick="grade(${idx},4)" style="color:#10b981">秒答</button></div>`:''}
+   </div>`;}).join('')||'<p class="muted" style="text-align:center;padding:20px">🎉 今日複習已完成！</p>';
+ document.getElementById('dueCount').textContent=MEMORY.filter(memDue).length;
+}
+function grade(idx,rating){
+ const m=MEMORY[idx];const now=Date.now();
+ const res=fsrsReview(m.fsrs,rating,now,{eng:eegOn?eeg.eng:0.5});
+ m.fsrs=res.card;
+ // 即時回饋：FSRS 算出的下次間隔
+ const engNote=eegOn?`（含腦波專注度 ${Math.round(eeg.eng*100)}% 微調）`:'';
+ sysToast(`📅 FSRS 已排程：下次複習 <b>${res.interval} 天後</b> · 穩定度→${m.fsrs.stability.toFixed(1)}天 ${engNote}`);
+ memTab(document.getElementById('segAll').classList.contains('on')?'all':'due');
+}
+// 小提示（記憶頁用）
+function sysToast(html){
+ let el=document.getElementById('memToast');
+ if(!el){el=document.createElement('div');el.id='memToast';
+   el.style.cssText='position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:12px;padding:10px 14px;border-radius:12px;z-index:60;max-width:88%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)';
+   document.body.appendChild(el);}
+ el.innerHTML=html;el.style.display='block';
+ clearTimeout(window._mt);window._mt=setTimeout(()=>el.style.display='none',2800);
+}
+
+/* ===== Toast ===== */
+function showToast(){
+ const DM=eegOn?[['Visual','#6366F1',-8],['Auditory','#EC4899',5],['Kinesthetic','#F59E0B',12]]:[['Auditory','#EC4899',5],['Kinesthetic','#F59E0B',10]];
+ document.getElementById('toastBody').innerHTML=
+  (eegOn?'<div style="font-size:11px;color:#06b6d4;margin-top:4px">🧠 含腦波 EEG 第三源驗證</div>':'')+
+  DM.map(([l,c,d])=>`<div class="deltarow"><span style="width:78px">${l}</span><div class="tk"><div style="width:${Math.min(Math.abs(d)*6,100)}%;background:${c}"></div></div><span class="${d>0?'up':'down'}" style="width:42px;text-align:right">${d>0?'+':''}${d}%</span></div>`).join('');
+ const t=document.getElementById('toast');t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(hideToast,6000);}
+function hideToast(){document.getElementById('toast').classList.remove('show');}
+
+renderFlow(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FluentAI · VARK 學習風格系統 Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --v:#6366F1; --a:#EC4899; --r:#10B981; --k:#F59E0B;
+    --ink:#1f2937; --sub:#6b7280; --line:#eef0f3; --bg:#f6f7f9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;position:relative;box-shadow:0 0 60px rgba(0,0,0,.06)}
+  /* top bar */
+  .topbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;gap:10px;z-index:20}
+  .topbar .logo{font-weight:800;font-size:16px;letter-spacing:-.3px}
+  .topbar .logo span{color:var(--v)}
+  .topbar .step-pill{margin-left:auto;font-size:11px;color:var(--sub);background:var(--bg);padding:4px 10px;border-radius:20px}
+  .screen{padding:22px 18px 110px;display:none;animation:fade .35s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes slidein{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+  h1{font-size:23px;font-weight:800;letter-spacing:-.5px}
+  h2{font-size:15px;font-weight:700;margin-bottom:12px}
+  .muted{color:var(--sub);font-size:13px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
+  .btn{display:block;width:100%;padding:15px;border:none;border-radius:16px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{background:#e5e7eb;color:#aaa;cursor:not-allowed}
+  .btn.ghost{background:#fff;border:1px solid #e3e6ea;color:var(--sub)}
+  .btn-row{display:flex;gap:10px;margin-top:18px}
+  .btn-row .btn{flex:1}
+  /* progress */
+  .pbar{height:8px;background:#eef0f3;border-radius:99px;overflow:hidden;margin:8px 0 22px}
+  .pbar>div{height:100%;background:linear-gradient(90deg,var(--v),var(--a));border-radius:99px;transition:width .4s}
+  /* options */
+  .opt{display:flex;gap:12px;align-items:flex-start;padding:15px;border:2px solid var(--line);border-radius:15px;margin-bottom:11px;cursor:pointer;transition:.15s;background:#fff}
+  .opt .emo{font-size:20px;flex-shrink:0}
+  .opt .txt{font-size:14px;color:#444}
+  .opt.sel{box-shadow:0 4px 14px rgba(0,0,0,.05)}
+  .opt.sel[data-t=v]{border-color:var(--v);background:#eef0ff}
+  .opt.sel[data-t=a]{border-color:var(--a);background:#fdeef6}
+  .opt.sel[data-t=r]{border-color:var(--r);background:#eafaf2}
+  .opt.sel[data-t=k]{border-color:var(--k);background:#fff5e6}
+  .opt.sel .chk{margin-left:auto;font-weight:700}
+  /* hero result */
+  .hero{border-radius:24px;padding:22px;color:#fff;margin-top:6px}
+  .hero .em{font-size:46px}
+  .hero h1{font-size:24px;margin-top:6px}
+  .hero .bw{background:rgba(255,255,255,.22);border-radius:14px;padding:9px 12px;font-size:13px;margin-top:14px}
+  /* bars */
+  .barrow{margin-bottom:14px}
+  .barrow .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .bartrack{height:10px;background:#eef0f3;border-radius:99px;overflow:hidden}
+  .bartrack>div{height:100%;border-radius:99px;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  /* scenario grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .sc{border:1px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;transition:.15s;background:#fff}
+  .sc:active{transform:scale(.97)}
+  .sc.top{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .sc .ic{font-size:24px}
+  .sc .nm{font-weight:700;font-size:13px;margin-top:6px}
+  .sc .ds{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.4}
+  .sc.top .ds{color:rgba(255,255,255,.7)}
+  .sc .match{font-size:11px;margin-top:8px;color:var(--v);font-weight:600}
+  .sc.top .match{color:#fff}
+  .tag{display:inline-block;font-size:10px;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:99px;margin-top:8px}
+  /* chat */
+  .chat{padding:16px;min-height:340px}
+  .bub{max-width:80%;padding:11px 14px;border-radius:18px;font-size:14px;margin-bottom:10px;animation:fade .3s;white-space:pre-wrap}
+  .bub.ai{background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px}
+  .bub.me{background:var(--ink);color:#fff;margin-left:auto;border-bottom-right-radius:5px}
+  .bub .corr{margin-top:8px;padding-top:8px;border-top:1px dashed #e3e6ea;font-size:12.5px;color:#555;line-height:1.7}
+  .chatbar{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:#fff;position:sticky;bottom:0}
+  .chatbar input{flex:1;border:1px solid #e3e6ea;border-radius:14px;padding:11px 14px;font-size:14px;outline:none}
+  .chatbar button{padding:0 18px;border:none;background:var(--ink);color:#fff;border-radius:14px;font-weight:600;cursor:pointer}
+  .quick{font-size:11px;color:var(--sub);padding:0 16px 8px}
+  .qchip{display:inline-block;border:1px solid #e3e6ea;border-radius:20px;padding:5px 11px;margin:3px 4px 0 0;font-size:12px;cursor:pointer;background:#fff;color:#444}
+  .qchip:active{background:var(--bg)}
+  /* score ring */
+  .ring{display:flex;align-items:center;gap:16px}
+  .ring .big{font-size:40px;font-weight:800}
+  .ring .big small{font-size:16px;color:var(--sub);font-weight:600}
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:90%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:50;display:none;animation:slideup .4s}
+  @keyframes slideup{from{transform:translate(-50%,80px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+  .toast.show{display:block}
+  .deltarow{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:8px}
+  .deltarow .tk{flex:1;height:6px;background:#eef0f3;border-radius:99px;overflow:hidden}
+  .deltarow .tk>div{height:100%;border-radius:99px}
+  .up{color:var(--r);font-weight:700}.down{color:#ef4444;font-weight:700}
+  /* nav dots */
+  .flowmap{display:flex;gap:6px;justify-content:center;padding:10px;background:var(--bg)}
+  .flowmap .d{width:7px;height:7px;border-radius:99px;background:#d1d5db}
+  .flowmap .d.on{background:var(--ink);width:20px}
+  .seg{display:flex;border:1px solid #e3e6ea;border-radius:14px;overflow:hidden;margin-top:12px}
+  .seg button{flex:1;padding:9px;border:none;background:#fff;font-size:13px;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--ink);color:#fff}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpi .b{background:var(--bg);border-radius:14px;padding:12px}
+  .kpi .b .n{font-size:22px;font-weight:800}
+  .kpi .b .l{font-size:11px;color:var(--sub)}
+  .pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--sub);margin-right:5px}
+  .insight{background:#f0f9ff;border:1px solid #e0f2fe;border-radius:14px;padding:12px;font-size:12.5px;color:#075985;line-height:1.7;margin-top:12px}
+  ul.tips{list-style:none;margin-top:6px}
+  ul.tips li{font-size:13px;color:#555;padding:4px 0;display:flex;gap:8px}
+  ul.tips li::before{content:"→";color:#cbd5e1}
+  .demo-banner{background:#fffbeb;border-bottom:1px solid #fde68a;font-size:11px;color:#92400e;text-align:center;padding:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="demo-banner">🎬 DEMO 模式 · 全部為模擬資料，展示用戶完整使用流程與回饋報表</div>
+  <div class="topbar">
+    <div class="logo">Fluent<span>AI</span></div>
+    <div class="step-pill" id="stepPill">學習風格測驗</div>
+  </div>
+  <div class="flowmap" id="flowmap"></div>
+
+  <!-- ===== SCREEN 0: 測驗介紹 ===== -->
+  <div class="screen active" id="s0">
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:54px">🧠</div>
+      <h1 style="margin-top:10px">VARK 學習風格測驗</h1>
+      <p class="muted" style="margin-top:8px">透過 6 道情境題，AI 找出你是<br>視覺 / 聽覺 / 讀寫 / 體驗型學習者<br>並客製化專屬的教學風格</p>
+    </div>
+    <div class="grid">
+      <div class="sc"><div class="ic">👁️</div><div class="nm">Visual 視覺</div><div class="ds">圖表 · 色彩 · 空間</div></div>
+      <div class="sc"><div class="ic">🎧</div><div class="nm">Auditory 聽覺</div><div class="ds">聆聽 · 討論 · 語調</div></div>
+      <div class="sc"><div class="ic">📖</div><div class="nm">Reading 讀寫</div><div class="ds">文字 · 筆記 · 邏輯</div></div>
+      <div class="sc"><div class="ic">🤸</div><div class="nm">Kinesthetic 體驗</div><div class="ds">實作 · 情境 · 任務</div></div>
+    </div>
+    <button class="btn" style="margin-top:24px" onclick="startQuiz()">開始測驗 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="skipToReport()">⏩ 我已測過，直接看報告</button>
+  </div>
+
+  <!-- ===== SCREEN 1: 測驗題目 ===== -->
+  <div class="screen" id="s1">
+    <div class="muted" style="display:flex;justify-content:space-between"><span id="qIdx">問題 1 / 6</span><span id="qPct">17%</span></div>
+    <div class="pbar"><div id="qProg" style="width:17%"></div></div>
+    <div id="qContext" class="muted" style="font-style:italic;margin-bottom:6px"></div>
+    <h2 id="qText" style="font-size:17px;line-height:1.5"></h2>
+    <p class="muted" style="margin:4px 0 16px">可選擇多個符合的答案</p>
+    <div id="qOpts"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="qBack" onclick="prevQ()">上一題</button>
+      <button class="btn" id="qNext" onclick="nextQ()" disabled>下一題 →</button>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 2: VARK 報告 ===== -->
+  <div class="screen" id="s2">
+    <div class="hero" id="hero">
+      <div class="em" id="heroEmo">👁️</div>
+      <div style="opacity:.75;font-size:12px">你的主要學習風格</div>
+      <h1 id="heroLabel">視覺型學習者</h1>
+      <div id="heroSec" style="opacity:.85;font-size:13px;margin-top:3px"></div>
+      <div class="bw" id="heroBw">🧠 腦波模式：Alpha 波｜8–12 Hz</div>
+    </div>
+
+    <div class="card">
+      <h2>VARK 分數分佈</h2>
+      <div id="bars"></div>
+    </div>
+
+    <div class="card">
+      <h2>測驗 vs 對話行為對比</h2>
+      <p class="muted" style="margin-bottom:8px;font-size:12px">藍=測驗結果　粉=對話行為分析　綠=融合輪廓</p>
+      <canvas id="radar" height="240"></canvas>
+    </div>
+
+    <div class="card" id="traitCard">
+      <h2>✨ 學習特質與建議</h2>
+      <ul class="tips" id="tips"></ul>
+    </div>
+
+    <div class="insight" id="aiNote"></div>
+
+    <button class="btn" style="margin-top:18px" onclick="goScenario()">用我的風格開始練習 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="show('s1');curQ=0;renderQ()">重新測驗</button>
+  </div>
+
+  <!-- ===== SCREEN 3: 情境推薦 ===== -->
+  <div class="screen" id="s3">
+    <h1>選擇練習情境</h1>
+    <p class="muted">AI 已依你的 <b id="scDom">視覺型</b> 風格排序最適合的情境</p>
+    <div class="grid" id="scGrid"></div>
+  </div>
+
+  <!-- ===== SCREEN 4: AI 對話 ===== -->
+  <div class="screen" id="s4" style="padding:0 0 0">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px">
+      <div>
+        <div style="font-weight:700;font-size:14px" id="chatTitle">🍽️ 餐廳點餐情境</div>
+        <div class="muted" style="font-size:11px">English · Intermediate · <span id="chatMode">視覺型教學模式</span></div>
+      </div>
+      <button class="btn ghost" style="width:auto;padding:8px 14px;margin-left:auto;font-size:13px" onclick="endChat()">結束對話</button>
+    </div>
+    <div class="chat" id="chatBody"></div>
+    <div class="quick">💡 試試這些回覆：<div id="quickChips"></div></div>
+    <div class="chatbar">
+      <input id="chatInput" placeholder="輸入英文訊息..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button onclick="sendMsg()">送出</button>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 5: 對話後回饋報表 ===== -->
+  <div class="screen" id="s5">
+    <h1>對話回饋報表</h1>
+    <p class="muted">🍽️ 餐廳點餐情境 · English</p>
+
+    <div class="card">
+      <div class="ring">
+        <div class="big" id="overallScore">8.4<small>/10</small></div>
+        <div style="flex:1">
+          <div class="muted" style="font-size:12px">綜合表現</div>
+          <div style="font-weight:700;color:var(--r)" id="scoreVerdict">表現優異 · 持續進步中</div>
+        </div>
+      </div>
+      <div style="margin-top:16px" id="scoreBars"></div>
+      <div class="insight" id="scoreFeedback"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 本次對話 VARK 行為分析</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:10px">系統從你的提問方式與互動行為，推導出本次對話展現的學習傾向</p>
+      <canvas id="behaviorChart" height="220"></canvas>
+      <div class="insight" id="behaviorInsight"></div>
+    </div>
+
+    <div class="card">
+      <h2>📈 學習風格演變趨勢</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:10px">近 5 次練習的 VARK 佔比變化（融合測驗 + 對話行為）</p>
+      <canvas id="trendChart" height="220"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>🔤 詞彙與語法重點</h2>
+      <div id="vocabReport"></div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 給你的下一步建議</h2>
+      <ul class="tips" id="nextTips"></ul>
+    </div>
+
+    <button class="btn" style="margin-top:18px" onclick="goScenario()">再練一次 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="show('s6')">📋 查看長期學習儀表板</button>
+  </div>
+
+  <!-- ===== SCREEN 6: 長期儀表板 ===== -->
+  <div class="screen" id="s6">
+    <h1>學習儀表板</h1>
+    <p class="muted">你的完整學習旅程總覽</p>
+
+    <div class="kpi" style="margin-top:14px">
+      <div class="b"><div class="n">14</div><div class="l">累計練習場次</div></div>
+      <div class="b"><div class="n">8.1</div><div class="l">平均綜合分數</div></div>
+      <div class="b"><div class="n">312</div><div class="l">學習能量點數 ⚡</div></div>
+      <div class="b"><div class="n">6 天</div><div class="l">連續學習 🔥</div></div>
+    </div>
+
+    <div class="card">
+      <h2>各能力成長曲線</h2>
+      <canvas id="growthChart" height="220"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>學習風格穩定度</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:8px">你的主導風格在最近練習中的一致性</p>
+      <div id="stabilityBars"></div>
+      <div class="insight">📌 你的 <b>視覺型</b> 傾向持續穩定（一致性 82%），但近期 <b>體驗型</b> 比重上升 +6%，代表你開始更勇於在真實情境中開口。AI 將逐步增加角色扮演類練習。</div>
+    </div>
+
+    <div class="card">
+      <h2>本週練習分布</h2>
+      <div id="weekStats"></div>
+    </div>
+
+    <button class="btn" style="margin-top:18px" onclick="goScenario()">繼續練習 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="show('s0')">🔄 重新體驗整個流程</button>
+  </div>
+
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast">
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:18px">🧠</span><b style="font-size:14px">VARK 輪廓已更新</b>
+    <span style="margin-left:auto;color:#cbd5e1;cursor:pointer" onclick="hideToast()">✕</span>
+  </div>
+  <div id="toastBody"></div>
+  <div style="text-align:center;margin-top:10px"><a style="font-size:12px;color:var(--sub);cursor:pointer" onclick="hideToast();show('s5')">查看完整回饋報表 →</a></div>
+</div>
+
+<script>
+/* ============== 假資料 ============== */
+const QUESTIONS=[
+  {ctx:"例如：學習英文現在完成式",q:"學一個新文法規則時，你最喜歡哪種方式？",
+   o:{v:"看時間軸圖表理解概念",a:"聽老師用例句說明並跟讀",r:"閱讀文法書的規則與例句列表",k:"直接在對話中使用，邊說邊體會"}},
+  {ctx:"",q:"背新單字時，哪種方法對你最有效？",
+   o:{v:"用顏色標記、畫心智圖",a:"大聲朗讀並錄音反覆聽",r:"寫下單字、例句與解釋整理筆記",k:"用單字在真實對話中造句"}},
+  {ctx:"",q:"遇到聽不懂的英文對話時，你會怎麼做？",
+   o:{v:"重看畫面與字幕、觀察表情",a:"反覆聆聽，注意語調發音",r:"查逐字稿或字典逐句確認",k:"依情境猜測，直接試著回應"}},
+  {ctx:"",q:"哪種回饋對你的學習最有幫助？",
+   o:{v:"用顏色圖示標出錯誤位置",a:"直接告訴你哪裡發音不對",r:"提供詳細文字修正與說明",k:"給你修正後的情境重新練一次"}},
+  {ctx:"假設你在英語系國家",q:"旅行迷路需要問路，你會怎麼準備？",
+   o:{v:"先在地圖上確認路線",a:"在心裡練習一遍要說的話",r:"查好問路句子準備念出來",k:"直接走過去問，用手勢輔助"}},
+  {ctx:"",q:"哪種學習進度呈現方式你最喜歡？",
+   o:{v:"雷達圖、視覺化儀表板",a:"語音播報本週學習摘要",r:"詳細文字報告列出強弱項",k:"看到完成了哪些任務挑戰"}},
+];
+const CARDS={
+  v:{key:'v',emoji:'👁️',label:'視覺型學習者',color:'#6366F1',bw:'Alpha 波｜8–12 Hz',
+     tips:['用心智圖整理單字與文法','看英文影片時注意字幕排版','把抽象規則畫成圖表或時間軸'],
+     ai:'🤖 AI 教學調整：使用符號標記（✅❌📌）、before/after 對比格式呈現修正，並描述可想像的情境畫面，幫助你用「看」的方式記住語言。'},
+  a:{key:'a',emoji:'🎧',label:'聽覺型學習者',color:'#EC4899',bw:'Theta–Alpha 波｜4–12 Hz',
+     tips:['大聲朗讀並錄下自己回聽','用 Podcast 當背景沉浸學習','注意語調與節奏的差異'],
+     ai:'🤖 AI 教學調整：用對話語氣回應、引導你跟讀，強調語音節奏與韻律，讓你用「聽與說」的方式自然吸收。'},
+  r:{key:'r',emoji:'📖',label:'讀寫型學習者',color:'#10B981',bw:'Beta 波｜13–30 Hz',
+     tips:['建立個人單字筆記本','閱讀文章後寫摘要','研究文法規則的邏輯結構'],
+     ai:'🤖 AI 教學調整：提供結構化解釋、編號清單、詳細文法規則與多個例句，滿足你對文字與細節的偏好。'},
+  k:{key:'k',emoji:'🤸',label:'體驗型學習者',color:'#F59E0B',bw:'Gamma–Theta 波｜4–8 / 30–100 Hz',
+     tips:['用角色扮演練習對話','模擬真實情境（點餐、面試）','把每次修正當成小任務立即重試'],
+     ai:'🤖 AI 教學調整：每個修正都化為任務挑戰、要求你立即重試，並以真實情境包裝練習，讓你「做中學」。'},
+};
+const SCENARIOS=[
+  {id:'restaurant',ic:'🍽️',nm:'餐廳點餐',ds:'點餐、詢問菜單、特殊需求',aff:{v:.4,a:.6,r:.2,k:.9}},
+  {id:'interview',ic:'💼',nm:'英文面試',ds:'自我介紹到情境問答',aff:{v:.3,a:.6,r:.4,k:.95}},
+  {id:'image',ic:'🖼️',nm:'描述圖片',ds:'觀察並描述場景細節',aff:{v:.95,a:.3,r:.4,k:.2}},
+  {id:'debate',ic:'🎤',nm:'辯論討論',ds:'針對議題說服與反駁',aff:{v:.2,a:.95,r:.5,k:.4}},
+  {id:'email',ic:'📧',nm:'商業郵件',ds:'正式英文書信寫作',aff:{v:.3,a:.2,r:.95,k:.3}},
+  {id:'travel',ic:'✈️',nm:'旅遊規劃',ds:'討論景點與行程',aff:{v:.85,a:.5,r:.5,k:.7}},
+];
+// 對話腳本（依 VARK 主型不同，AI 風格不同）
+const CHAT_FLOW=[
+  {ai:{v:"Welcome! 🍽️ Picture a cozy Italian restaurant — soft lights, the smell of fresh basil.\n\nI'm your waiter. Let me set the scene: here's the menu in front of you. What would you like to order?",
+       a:"Welcome to our restaurant! *warm voice* So, what can I get started for you today? Take your time — just say it out loud.",
+       r:"Welcome. Here is today's menu:\n1. Margherita Pizza\n2. Spaghetti Carbonara\n3. Caesar Salad\n\nWhich item would you like to order?",
+       k:"You walk into a busy restaurant and a waiter approaches. 🎬 Your task: order a main dish. Go ahead — what do you say?"}},
+];
+const QUICK=["I want pizza","Can I see the menu?","I'd like to order spaghetti, please"];
+
+/* ============== 狀態 ============== */
+let answers=Array(QUESTIONS.length).fill(null).map(()=>({})); // {v:true,...}
+let curQ=0;
+let scores={v:0,a:0,r:0,k:0};
+let dominant='v', secondary='a';
+let radarChart,behaviorChart,trendChart,growthChart;
+
+/* ============== 導航 ============== */
+const SCREENS=['s0','s1','s2','s3','s4','s5','s6'];
+const STEP_NAMES=['學習風格測驗','測驗進行中','VARK 報告','選擇情境','AI 對話','回饋報表','學習儀表板'];
+function show(id){
+  SCREENS.forEach(s=>document.getElementById(s).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const i=SCREENS.indexOf(id);
+  document.getElementById('stepPill').textContent=STEP_NAMES[i];
+  renderFlowmap(i);
+  window.scrollTo(0,0);
+}
+function renderFlowmap(active){
+  const fm=document.getElementById('flowmap');
+  fm.innerHTML=SCREENS.map((_,i)=>`<div class="d ${i===active?'on':''}"></div>`).join('');
+}
+
+/* ============== 測驗 ============== */
+function startQuiz(){curQ=0;answers=answers.map(()=>({}));show('s1');renderQ();}
+function renderQ(){
+  const Q=QUESTIONS[curQ];
+  document.getElementById('qIdx').textContent=`問題 ${curQ+1} / ${QUESTIONS.length}`;
+  const pct=Math.round((curQ+1)/QUESTIONS.length*100);
+  document.getElementById('qPct').textContent=pct+'%';
+  document.getElementById('qProg').style.width=pct+'%';
+  document.getElementById('qContext').textContent=Q.ctx;
+  document.getElementById('qText').textContent=Q.q;
+  const emo={v:'👁️',a:'🎧',r:'📖',k:'🤸'};
+  document.getElementById('qOpts').innerHTML=['v','a','r','k'].map(t=>
+    `<div class="opt ${answers[curQ][t]?'sel':''}" data-t="${t}" onclick="toggleOpt('${t}')">
+       <span class="emo">${emo[t]}</span><span class="txt">${Q.o[t]}</span>
+       ${answers[curQ][t]?'<span class="chk">✓</span>':''}
+     </div>`).join('');
+  document.getElementById('qBack').style.visibility=curQ===0?'hidden':'visible';
+  document.getElementById('qNext').textContent=curQ===QUESTIONS.length-1?'查看結果 →':'下一題 →';
+  updateNextBtn();
+}
+function toggleOpt(t){answers[curQ][t]=!answers[curQ][t];renderQ();}
+function updateNextBtn(){
+  const has=Object.values(answers[curQ]).some(x=>x);
+  document.getElementById('qNext').disabled=!has;
+}
+function prevQ(){if(curQ>0){curQ--;renderQ();}}
+function nextQ(){
+  if(curQ<QUESTIONS.length-1){curQ++;renderQ();}
+  else computeResult();
+}
+function computeResult(){
+  scores={v:0,a:0,r:0,k:0};
+  answers.forEach(a=>['v','a','r','k'].forEach(t=>{if(a[t])scores[t]++;}));
+  // 若沒選滿，套用預設偏視覺的 demo 結果讓報告好看
+  const total=scores.v+scores.a+scores.r+scores.k;
+  if(total<3){scores={v:5,a:3,r:2,k:4};}
+  const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  dominant=sorted[0][0];secondary=sorted[1][0];
+  renderReport();
+  show('s2');
+}
+function skipToReport(){scores={v:6,a:3,r:2,k:4};dominant='v';secondary='k';renderReport();show('s2');}
+
+/* ============== VARK 報告 ============== */
+function pct(t){const tot=scores.v+scores.a+scores.r+scores.k;return Math.round(scores[t]/tot*100);}
+function renderReport(){
+  const c=CARDS[dominant];
+  const hero=document.getElementById('hero');
+  hero.style.background=`linear-gradient(135deg,${c.color}cc,${c.color})`;
+  document.getElementById('heroEmo').textContent=c.emoji;
+  document.getElementById('heroLabel').textContent=c.label;
+  document.getElementById('heroSec').textContent='次要風格：'+CARDS[secondary].label+' '+CARDS[secondary].emoji;
+  document.getElementById('heroBw').textContent='🧠 腦波模式：'+c.bw;
+  // bars
+  const META=[['v','Visual 視覺','#6366F1'],['a','Auditory 聽覺','#EC4899'],['r','Reading 讀寫','#10B981'],['k','Kinesthetic 體驗','#F59E0B']];
+  document.getElementById('bars').innerHTML=META.map(([t,l,col])=>
+    `<div class="barrow"><div class="lab"><span>${l}</span><span style="color:${col};font-weight:700">${pct(t)}%</span></div>
+     <div class="bartrack"><div data-w="${pct(t)}" style="background:${col}"></div></div></div>`).join('');
+  setTimeout(()=>document.querySelectorAll('#bars .bartrack>div').forEach(d=>d.style.width=d.dataset.w+'%'),100);
+  // tips
+  document.getElementById('tips').innerHTML=c.tips.map(t=>`<li>${t}</li>`).join('');
+  document.getElementById('aiNote').innerHTML=c.ai;
+  document.getElementById('scDom').textContent=c.label;
+  // radar
+  drawRadar();
+}
+function drawRadar(){
+  const ctx=document.getElementById('radar');
+  if(radarChart)radarChart.destroy();
+  const quiz=[pct('v'),pct('a'),pct('r'),pct('k')];
+  // 行為分析：稍微偏向體驗（模擬真實對話中更愛實作）
+  const beh=[quiz[0]-8,quiz[1]+5,quiz[2]-5,quiz[3]+10].map(x=>Math.max(5,Math.min(95,x)));
+  const blend=quiz.map((q,i)=>Math.round(q*0.4+beh[i]*0.6));
+  radarChart=new Chart(ctx,{type:'radar',
+    data:{labels:['Visual','Auditory','Reading','Kinesthetic'],
+      datasets:[
+        {label:'測驗',data:quiz,borderColor:'#6366F1',backgroundColor:'rgba(99,102,241,.12)',borderWidth:2},
+        {label:'行為',data:beh,borderColor:'#EC4899',backgroundColor:'rgba(236,72,153,.12)',borderWidth:2},
+        {label:'融合',data:blend,borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.18)',borderWidth:2.5},
+      ]},
+    options:{plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}},
+      scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:12}}}}}});
+}
+
+/* ============== 情境 ============== */
+function goScenario(){
+  const list=SCENARIOS.map(s=>{
+    const blend={v:pct('v')/100,a:pct('a')/100,r:pct('r')/100,k:pct('k')/100};
+    const m=blend.v*s.aff.v+blend.a*s.aff.a+blend.r*s.aff.r+blend.k*s.aff.k;
+    return {...s,m};
+  }).sort((a,b)=>b.m-a.m);
+  document.getElementById('scGrid').innerHTML=list.map((s,i)=>
+    `<div class="sc ${i<2?'top':''}" onclick="startChat('${s.id}','${s.ic}','${s.nm}')">
+       <div class="ic">${s.ic}</div>
+       ${i<2?'<span class="tag">✨ 推薦</span>':''}
+       <div class="nm">${s.nm}</div><div class="ds">${s.ds}</div>
+       <div class="match">${Math.round(s.m*100)}% 適配</div>
+     </div>`).join('');
+  show('s3');
+}
+
+/* ============== 對話 ============== */
+let chatStep=0,chatScn={};
+function startChat(id,ic,nm){
+  chatScn={id,ic,nm};chatStep=0;
+  document.getElementById('chatTitle').textContent=ic+' '+nm+'情境';
+  document.getElementById('chatMode').textContent=CARDS[dominant].label+'教學模式';
+  document.getElementById('chatBody').innerHTML='';
+  document.getElementById('quickChips').innerHTML=QUICK.map(q=>`<span class="qchip" onclick="fillChip(this)">${q}</span>`).join('');
+  show('s4');
+  setTimeout(()=>aiSay(CHAT_FLOW[0].ai[dominant]),400);
+}
+function aiSay(text,corr){
+  const b=document.getElementById('chatBody');
+  const d=document.createElement('div');d.className='bub ai';
+  d.innerHTML=text.replace(/\n/g,'<br>')+(corr?`<div class="corr">${corr}</div>`:'');
+  b.appendChild(d);b.scrollTop=b.scrollHeight;
+}
+function meSay(text){
+  const b=document.getElementById('chatBody');
+  const d=document.createElement('div');d.className='bub me';d.textContent=text;
+  b.appendChild(d);b.scrollTop=b.scrollHeight;
+}
+function fillChip(el){document.getElementById('chatInput').value=el.textContent;}
+function sendMsg(){
+  const inp=document.getElementById('chatInput');
+  const v=inp.value.trim();if(!v)return;
+  meSay(v);inp.value='';chatStep++;
+  // 模擬 AI 依風格回覆 + 修正
+  const corrByStyle={
+    v:`✏️ You said: "${v}"<br>✅ Better: "I'd like to order a pizza, please."<br>📌 用 "I'd like to..." 更禮貌（畫個重點記住這個句型）`,
+    a:`聽聽看差別 🎧：你說的很好！更道地的說法是 "I'd like to order..." — 試著念念看，感受 "would like" 的連音。`,
+    r:`修正說明：<br>1. 原句：${v}<br>2. 建議：加上 "please" 更禮貌<br>3. 句型：I would like + to V / + 名詞`,
+    k:`不錯！換你再試一次 🎬：服務生回問「Anything to drink?」— 你會怎麼回答？直接打打看！`,
+  };
+  setTimeout(()=>{
+    if(chatStep>=2){
+      aiSay("Perfect! Your order is all set. 👨‍🍳 Great job ordering in English!\n\n（已達成本次練習目標，可結束對話查看回饋報表）",corrByStyle[dominant]);
+    }else{
+      aiSay("Excellent choice! Would you like anything to drink with that?",corrByStyle[dominant]);
+    }
+  },500);
+}
+function endChat(){
+  renderFeedback();
+  showToast();
+  show('s5');
+}
+
+/* ============== 回饋報表 ============== */
+function renderFeedback(){
+  // 評分
+  const s={fluency:8.2,grammar:7.8,vocab:8.6,logic:9.0};
+  const overall=((s.fluency+s.grammar+s.vocab+s.logic)/4).toFixed(1);
+  document.getElementById('overallScore').innerHTML=overall+'<small>/10</small>';
+  const SB=[['流暢度',s.fluency,'#6366F1'],['文法',s.grammar,'#EC4899'],['詞彙',s.vocab,'#10B981'],['邏輯',s.logic,'#F59E0B']];
+  document.getElementById('scoreBars').innerHTML=SB.map(([l,v,c])=>
+    `<div class="barrow"><div class="lab"><span>${l}</span><span style="color:${c};font-weight:700">${v}/10</span></div>
+     <div class="bartrack"><div data-w="${v*10}" style="background:${c}"></div></div></div>`).join('');
+  setTimeout(()=>document.querySelectorAll('#scoreBars .bartrack>div').forEach(d=>d.style.width=d.dataset.w+'%'),100);
+  document.getElementById('scoreFeedback').innerHTML=
+    '💬 <b>AI 點評：</b>你在點餐情境中表達清晰、邏輯流暢，能正確使用基本句型。建議多練習 "I would like to..." 的禮貌句型，並加入更多形容詞讓描述更生動。整體進步明顯，繼續保持！';
+  // 行為分析
+  const beh=[pct('v')-8,pct('a')+5,pct('r')-5,pct('k')+10].map(x=>Math.max(8,Math.min(92,x)));
+  if(behaviorChart)behaviorChart.destroy();
+  behaviorChart=new Chart(document.getElementById('behaviorChart'),{type:'bar',
+    data:{labels:['Visual','Auditory','Reading','Kinesthetic'],
+      datasets:[{data:beh,backgroundColor:['#6366F1','#EC4899','#10B981','#F59E0B'],borderRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+  document.getElementById('behaviorInsight').innerHTML=
+    `🔍 <b>行為洞察：</b>本次對話中你頻繁要求「再試一次」並偏好情境化練習，<b>體驗型(Kinesthetic)</b> 訊號比測驗時上升了 <span class="up">+10%</span>。系統將逐步為你增加角色扮演類情境。`;
+  // 趨勢
+  if(trendChart)trendChart.destroy();
+  trendChart=new Chart(document.getElementById('trendChart'),{type:'line',
+    data:{labels:['練習1','練習2','練習3','練習4','本次'],
+      datasets:[
+        {label:'Visual',data:[55,52,50,48,pct('v')],borderColor:'#6366F1',tension:.4,pointRadius:3},
+        {label:'Auditory',data:[15,18,20,22,pct('a')],borderColor:'#EC4899',tension:.4,pointRadius:3},
+        {label:'Reading',data:[18,15,14,12,pct('r')],borderColor:'#10B981',tension:.4,pointRadius:3},
+        {label:'Kinesthetic',data:[12,15,16,18,pct('k')],borderColor:'#F59E0B',tension:.4,pointRadius:3},
+      ]},
+    options:{plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},scales:{y:{max:70,ticks:{callback:v=>v+'%'}}}}});
+  // 詞彙報表
+  document.getElementById('vocabReport').innerHTML=`
+    <div style="margin-bottom:10px"><span class="pill" style="background:#eafaf2;color:#10b981">✓ 用得好</span>
+      <span style="font-size:13px">order, menu, please, would like</span></div>
+    <div style="margin-bottom:10px"><span class="pill" style="background:#fff5e6;color:#f59e0b">↑ 可進階</span>
+      <span style="font-size:13px">推薦學習：appetizer, recommend, allergic to</span></div>
+    <div><span class="pill" style="background:#fdeef6;color:#ec4899">✏️ 修正點</span>
+      <span style="font-size:13px">"I want" → "I'd like"（更禮貌）</span></div>`;
+  // 下一步
+  document.getElementById('nextTips').innerHTML=
+    CARDS[dominant].tips.map(t=>`<li>${t}</li>`).join('')+
+    `<li>推薦下一個情境：<b>🖼️ 描述圖片</b>（適配你的視覺風格）</li>`;
+  drawDashboard();
+}
+
+/* ============== 儀表板 ============== */
+function drawDashboard(){
+  if(growthChart)growthChart.destroy();
+  growthChart=new Chart(document.getElementById('growthChart'),{type:'line',
+    data:{labels:['第1週','第2週','第3週','第4週'],
+      datasets:[
+        {label:'流暢度',data:[6.5,7.0,7.6,8.2],borderColor:'#6366F1',tension:.4},
+        {label:'文法',data:[6.0,6.8,7.2,7.8],borderColor:'#EC4899',tension:.4},
+        {label:'詞彙',data:[6.8,7.4,8.0,8.6],borderColor:'#10B981',tension:.4},
+      ]},
+    options:{plugins:{legend:{labels:{boxWidth:10,font:{size:11}}}},scales:{y:{min:5,max:10}}}});
+  const ST=[['視覺型',82,'#6366F1'],['體驗型',64,'#F59E0B'],['聽覺型',41,'#EC4899'],['讀寫型',28,'#10B981']];
+  document.getElementById('stabilityBars').innerHTML=ST.map(([l,v,c])=>
+    `<div class="barrow"><div class="lab"><span>${l}</span><span style="color:${c};font-weight:700">${v}%</span></div>
+     <div class="bartrack"><div style="width:${v}%;background:${c}"></div></div></div>`).join('');
+  document.getElementById('weekStats').innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)"><span>🍽️ 餐廳點餐</span><span class="muted">3 次 · 平均 8.4</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)"><span>🖼️ 描述圖片</span><span class="muted">2 次 · 平均 7.9</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>💼 英文面試</span><span class="muted">1 次 · 平均 7.5</span></div>`;
+}
+
+/* ============== Toast ============== */
+function showToast(){
+  const DM=[['v','Visual','#6366F1',-8],['a','Auditory','#EC4899',5],['r','Reading','#10B981',-5],['k','Kinesthetic','#F59E0B',10]];
+  document.getElementById('toastBody').innerHTML=DM.filter(d=>Math.abs(d[3])>=5).map(([t,l,c,delta])=>
+    `<div class="deltarow"><span style="width:78px">${l}</span>
+       <div class="tk"><div style="width:${Math.min(Math.abs(delta)*6,100)}%;background:${c}"></div></div>
+       <span class="${delta>0?'up':'down'}" style="width:42px;text-align:right">${delta>0?'+':''}${delta}%</span></div>`).join('');
+  const t=document.getElementById('toast');t.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(hideToast,6000);
+}
+function hideToast(){document.getElementById('toast').classList.remove('show');}
+
+renderFlowmap(0);
+</script>
+</body>
+</html>
