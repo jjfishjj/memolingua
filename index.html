@@ -370,12 +370,76 @@ function show(id){SCREENS.forEach(s=>document.getElementById(s).classList.remove
  document.getElementById(id).classList.add('active');renderFlow(SCREENS.indexOf(id));window.scrollTo(0,0);}
 function renderFlow(a){document.getElementById('flowmap').innerHTML=SCREENS.map((_,i)=>`<div class="d ${i===a?'on':''}"></div>`).join('');}
 
-/* ===== EEG 模擬 ===== */
-function toggleEEG(){eegOn=!eegOn;const c=document.getElementById('eegChip');
- if(eegOn){c.classList.add('on');document.getElementById('eegChipTxt').textContent='Muse 頭環連線中';startEEG();}
- else{c.classList.remove('on');document.getElementById('eegChipTxt').textContent='頭環未連線';stopEEG();}}
+/* ===== EEG：真實 Muse 頭環 (Web Bluetooth) + 模擬退回 ===== */
+let museDev=null, museMode='sim';   // 'real' | 'sim'
+function setChip(on,txt){const c=document.getElementById('eegChip');c.classList.toggle('on',on);document.getElementById('eegChipTxt').textContent=txt;}
+
+async function toggleEEG(){
+ if(eegOn){ // 關閉
+   eegOn=false;disconnectMuse();stopEEG();setChip(false,'頭環未連線');return;
+ }
+ // 嘗試連真實 Muse；無 Web Bluetooth 或失敗 → 模擬
+ if(navigator.bluetooth){
+   setChip(true,'搜尋 Muse 中…');
+   try{ await connectMuse(); eegOn=true; museMode='real'; setChip(true,'🔵 Muse 已連線'); return; }
+   catch(e){
+     if(e && e.name==='NotFoundError'){ // 使用者取消配對
+       const useSim=confirm('未選擇 Muse 裝置。\n要改用「模擬腦波」體驗嗎？');
+       if(!useSim){setChip(false,'頭環未連線');return;}
+     }else{
+       alert('連線失敗或瀏覽器不支援，改用模擬腦波。\n('+(e?.message||e)+')');
+     }
+   }
+ }else{
+   alert('此瀏覽器不支援 Web Bluetooth（請用桌面版 Chrome/Edge）。\n改用模擬腦波體驗。');
+ }
+ eegOn=true; museMode='sim'; setChip(true,'🟡 模擬腦波'); startEEG();
+}
 function startEEG(){if(eegTimer)return;eegTimer=setInterval(tickEEG,900);}
 function stopEEG(){clearInterval(eegTimer);eegTimer=null;clearInterval(waveTimer);waveTimer=null;}
+
+/* ---- Muse BLE ---- */
+const MUSE_SVC='0000fe8d-0000-1000-8000-00805f9b34fb';
+const MUSE_CTRL='273e0001-4c4d-454d-96be-f03bac821358';
+const MUSE_EEG=['273e0003-4c4d-454d-96be-f03bac821358','273e0004-4c4d-454d-96be-f03bac821358','273e0005-4c4d-454d-96be-f03bac821358','273e0006-4c4d-454d-96be-f03bac821358'];
+const SR=256, WIN=256;
+let museBufs=MUSE_EEG.map(()=>[]), museLoop=null, museCtrl=null;
+async function connectMuse(){
+ museDev=await navigator.bluetooth.requestDevice({filters:[{services:[MUSE_SVC]}],optionalServices:[MUSE_SVC]});
+ const srv=await (await museDev.gatt.connect()).getPrimaryService(MUSE_SVC);
+ museCtrl=await srv.getCharacteristic(MUSE_CTRL); await museCtrl.startNotifications();
+ museBufs=MUSE_EEG.map(()=>[]);
+ for(let i=0;i<MUSE_EEG.length;i++){
+   const ch=await srv.getCharacteristic(MUSE_EEG[i]); await ch.startNotifications();
+   ch.addEventListener('characteristicvaluechanged',e=>onMusePacket(i,e.target.value));
+ }
+ await museCmd('h'); await museCmd('p21'); await museCmd('d');
+ museDev.addEventListener('gattserverdisconnected',()=>{if(eegOn){museMode='sim';setChip(true,'🟡 模擬腦波(已斷線)');startEEG();}});
+ museLoop=setInterval(museAnalyze,1000);
+}
+function disconnectMuse(){clearInterval(museLoop);museLoop=null;try{museDev&&museDev.gatt.connected&&museDev.gatt.disconnect();}catch(e){}museDev=null;}
+async function museCmd(s){const b=[s.length,...s.split('').map(c=>c.charCodeAt(0)),10];await museCtrl.writeValue(new Uint8Array(b));}
+function onMusePacket(idx,dv){
+ let bit=16;const out=[];
+ for(let i=0;i<12;i++){const by=bit>>3,bi=bit&7;const raw=(dv.getUint8(by)<<8)|dv.getUint8(by+1);out.push((((raw>>(4-bi))&0xFFF)-2048)*0.488);bit+=12;}
+ const buf=museBufs[idx];buf.push(...out);if(buf.length>WIN)buf.splice(0,buf.length-WIN);
+}
+function museAnalyze(){
+ const R={delta:[.5,4],theta:[4,8],alpha:[8,12],beta:[12,30],gamma:[30,50]};
+ const acc={delta:0,theta:0,alpha:0,beta:0,gamma:0};let n=0;
+ for(const buf of museBufs){if(buf.length<WIN)continue;n++;const psd=psdOf(buf);for(const b in R)acc[b]+=bandPow(psd,R[b]);}
+ if(!n)return;
+ // 映射到 demo 的 eeg 物件（normalize 到展示用量級）
+ const sc=v=>clamp(Math.log10(v/n+1)*12,3,45);
+ eeg.delta=sc(acc.delta);eeg.theta=sc(acc.theta);eeg.alpha=sc(acc.alpha);eeg.beta=sc(acc.beta);eeg.gamma=sc(acc.gamma);
+ eeg.eng=clamp(eeg.beta/(eeg.alpha+eeg.theta),0,1);
+ eeg.load=clamp(eeg.theta/eeg.alpha*0.7,0,1);
+ eeg.enc=clamp((eeg.theta*eeg.gamma)/420,0,1);
+ if(document.getElementById('s4').classList.contains('active'))updateStrip();
+}
+function psdOf(sig){const N=sig.length,m=sig.reduce((a,b)=>a+b,0)/N,p=new Float32Array(N/2);
+ for(let k=0;k<N/2;k++){let re=0,im=0;for(let nn=0;nn<N;nn++){const a=2*Math.PI*k*nn/N,s=sig[nn]-m;re+=s*Math.cos(a);im-=s*Math.sin(a);}p[k]=(re*re+im*im)/N;}return p;}
+function bandPow(psd,[lo,hi]){const bin=SR/WIN;let p=0;for(let k=Math.floor(lo/bin);k<=Math.min(Math.floor(hi/bin),psd.length-1);k++)p+=psd[k];return p;}
 function tickEEG(){
  const j=()=>(Math.random()-.5)*6;
  eeg.delta=clamp(eeg.delta+j(),3,15);eeg.theta=clamp(eeg.theta+j(),12,35);
@@ -417,7 +481,7 @@ function computeResult(){scores={v:0,a:0,r:0,k:0};
  if(scores.v+scores.a+scores.r+scores.k<3)scores={v:5,a:3,r:2,k:4};
  const s=Object.entries(scores).sort((a,b)=>b[1]-a[1]);dominant=s[0][0];secondary=s[1][0];
  renderReport();show('s2');}
-function skipToReport(){scores={v:6,a:3,r:2,k:4};dominant='v';secondary='k';if(!eegOn)toggleEEG();renderReport();show('s2');}
+function skipToReport(){scores={v:6,a:3,r:2,k:4};dominant='v';secondary='k';if(!eegOn){eegOn=true;museMode='sim';setChip(true,'🟡 模擬腦波');startEEG();}renderReport();show('s2');}
 function pct(t){const tot=scores.v+scores.a+scores.r+scores.k;return Math.round(scores[t]/tot*100);}
 
 /* ===== 融合報告 ===== */
