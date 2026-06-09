@@ -377,25 +377,51 @@ function setChip(on,txt){const c=document.getElementById('eegChip');c.classList.
 
 async function toggleEEG(){
  if(eegOn){ // 關閉
-   eegOn=false;disconnectMuse();stopEEG();setChip(false,'頭環未連線');return;
+   eegOn=false;disconnectMuse();disconnectNeuro();stopEEG();setChip(false,'頭環未連線');return;
  }
- // 嘗試連真實 Muse；無 Web Bluetooth 或失敗 → 模擬
- if(navigator.bluetooth){
+ // 讓使用者選裝置：1=Muse(藍牙) 2=NeuroSky(WS) 3=模擬
+ const pick=prompt('選擇腦波來源：\n1 = Muse 2/S（藍牙，需桌面 Chrome）\n2 = NeuroSky MindWave（需開 ThinkGear Connector）\n3 = 模擬腦波\n\n輸入 1 / 2 / 3：','1');
+ if(pick===null){setChip(false,'頭環未連線');return;}
+ if(pick.trim()==='1'){
+   if(!navigator.bluetooth){alert('此瀏覽器不支援 Web Bluetooth，改用模擬。');return goSim();}
    setChip(true,'搜尋 Muse 中…');
    try{ await connectMuse(); eegOn=true; museMode='real'; setChip(true,'🔵 Muse 已連線'); return; }
-   catch(e){
-     if(e && e.name==='NotFoundError'){ // 使用者取消配對
-       const useSim=confirm('未選擇 Muse 裝置。\n要改用「模擬腦波」體驗嗎？');
-       if(!useSim){setChip(false,'頭環未連線');return;}
-     }else{
-       alert('連線失敗或瀏覽器不支援，改用模擬腦波。\n('+(e?.message||e)+')');
-     }
-   }
- }else{
-   alert('此瀏覽器不支援 Web Bluetooth（請用桌面版 Chrome/Edge）。\n改用模擬腦波體驗。');
+   catch(e){ if(!(e&&e.name==='NotFoundError'))alert('Muse 連線失敗：'+(e?.message||e));
+     return confirm('改用模擬腦波？')?goSim():setChip(false,'頭環未連線'); }
  }
- eegOn=true; museMode='sim'; setChip(true,'🟡 模擬腦波'); startEEG();
+ if(pick.trim()==='2'){
+   setChip(true,'連線 NeuroSky 中…');
+   try{ await connectNeuro(); eegOn=true; museMode='neuro'; setChip(true,'🟣 NeuroSky 已連線'); return; }
+   catch(e){ alert('NeuroSky 連線失敗（請確認 ThinkGear Connector 已開啟，port 13854）：\n'+(e?.message||e));
+     return confirm('改用模擬腦波？')?goSim():setChip(false,'頭環未連線'); }
+ }
+ goSim();
 }
+function goSim(){eegOn=true;museMode='sim';setChip(true,'🟡 模擬腦波');startEEG();}
+
+/* ---- NeuroSky MindWave (ThinkGear Connector WebSocket :13854) ---- */
+let neuroWS=null;
+function connectNeuro(){
+ return new Promise((res,rej)=>{
+   neuroWS=new WebSocket('ws://127.0.0.1:13854');
+   const to=setTimeout(()=>{rej(new Error('連線逾時'));try{neuroWS.close()}catch(e){}},5000);
+   neuroWS.onopen=()=>{clearTimeout(to);neuroWS.send(JSON.stringify({enableRawOutput:false,format:'Json'}));res(true);};
+   neuroWS.onerror=()=>{clearTimeout(to);rej(new Error('無法連線到 ThinkGear'));};
+   neuroWS.onmessage=e=>{
+     const d=JSON.parse(e.data);if(!d.eegPower)return;const p=d.eegPower;
+     // NeuroSky 已給頻段，正規化到展示量級
+     const sc=v=>clamp(Math.log10(v/1e4+1)*9,3,45);
+     eeg.delta=sc(p.delta);eeg.theta=sc(p.theta);
+     eeg.alpha=sc(p.lowAlpha+p.highAlpha);eeg.beta=sc(p.lowBeta+p.highBeta);eeg.gamma=sc(p.lowGamma+p.highGamma);
+     eeg.eng=(d.eSense?.attention??50)/100;            // NeuroSky 直接給專注度
+     eeg.relax=(d.eSense?.meditation??50)/100;
+     eeg.load=clamp(eeg.theta/eeg.alpha*0.7,0,1);
+     eeg.enc=clamp((eeg.theta*eeg.gamma)/420,0,1);
+     if(document.getElementById('s4').classList.contains('active'))updateStrip();
+   };
+ });
+}
+function disconnectNeuro(){try{neuroWS&&neuroWS.close();}catch(e){}neuroWS=null;}
 function startEEG(){if(eegTimer)return;eegTimer=setInterval(tickEEG,900);}
 function stopEEG(){clearInterval(eegTimer);eegTimer=null;clearInterval(waveTimer);waveTimer=null;}
 
