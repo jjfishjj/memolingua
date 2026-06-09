@@ -3,18 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FluentAI · VARK + 腦波 + 記憶模型 Demo</title>
+<title>MemoLingua · 用腦波學語言 🧠</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root{--v:#6366F1;--a:#EC4899;--r:#10B981;--k:#F59E0B;--eeg:#06b6d4;
-    --ink:#1f2937;--sub:#6b7280;--line:#eef0f3;--bg:#f6f7f9;}
+  :root{--v:#6366F1;--a:#EC4899;--r:#10B981;--k:#F59E0B;
+    --primary:#0e3a36;--accent:#14b8a6;--eeg:#14b8a6;
+    --ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
   .app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.06)}
   .demo-banner{background:#ecfeff;border-bottom:1px solid #a5f3fc;font-size:11px;color:#0e7490;text-align:center;padding:6px}
   .topbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:13px 18px;display:flex;align-items:center;gap:10px;z-index:30}
   .topbar .logo{font-weight:800;font-size:16px;letter-spacing:-.3px}
-  .topbar .logo span{color:var(--v)}
+  .topbar .logo span{color:var(--accent)}
   .eegchip{margin-left:auto;font-size:11px;display:flex;align-items:center;gap:5px;background:#ecfeff;color:#0e7490;padding:4px 10px;border-radius:20px;cursor:pointer}
   .eegchip .dot{width:7px;height:7px;border-radius:99px;background:#94a3b8}
   .eegchip.on .dot{background:#22c55e;animation:pulse 1.2s infinite}
@@ -115,9 +116,9 @@
 </head>
 <body>
 <div class="app">
-  <div class="demo-banner">🎬 DEMO · VARK學習風格 × 腦波EEG分析 × 記憶模型（間隔複習）三源融合系統</div>
+  <div class="demo-banner">🎬 MemoLingua DEMO · VARK學習風格 × 腦波EEG × 記憶複習，三源融合幫你記得更牢！</div>
   <div class="topbar">
-    <div class="logo">Fluent<span>AI</span></div>
+    <div class="logo">Memo<span>Lingua</span></div>
     <div class="eegchip" id="eegChip" onclick="toggleEEG()"><span class="dot"></span><span id="eegChipTxt">頭環未連線</span></div>
   </div>
   <div class="flowmap" id="flowmap"></div>
@@ -126,8 +127,8 @@
   <div class="screen active" id="s0">
     <div style="text-align:center;padding:14px 0">
       <div style="font-size:50px">🧠</div>
-      <h1 style="margin-top:8px">VARK + 腦波 + 記憶模型</h1>
-      <p class="muted" style="margin-top:8px">三源融合，找出最真實的學習風格<br>並用記憶科學優化你的複習排程</p>
+      <h1 style="margin-top:8px">嗨！歡迎來到 MemoLingua 👋</h1>
+      <p class="muted" style="margin-top:8px">用 VARK＋腦波＋記憶科學三招<br>找出你的學習超能力，記語言記得更牢！🚀</p>
     </div>
     <div class="card" style="margin-top:8px">
       <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
@@ -137,8 +138,8 @@
       <div style="display:flex;gap:12px;align-items:flex-start">
         <span style="font-size:22px">🧠</span><div><b style="font-size:14px">第三源：腦波 EEG</b><div class="muted" style="font-size:12px">生理訊號揭露你「身體真實」的反應</div></div></div>
     </div>
-    <button class="btn" style="margin-top:18px" onclick="startQuiz()">開始測驗 →</button>
-    <button class="btn ghost" style="margin-top:10px" onclick="skipToReport()">⏩ 直接看融合報告</button>
+    <button class="btn" style="margin-top:18px" onclick="startQuiz()">開始測測看 →</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="skipToReport()">⏩ 手滑想偷看報告？點這 😏</button>
   </div>
 
   <!-- S1 quiz -->

@@ -8,30 +8,30 @@
 
 export const BRAND = {
   // ── 識別 ──
-  name: 'FluentAI',                 // ← 換成你的 App 名
-  logoText: ['Fluent', 'AI'],       // [前段, 高亮段]；若用圖檔改 logoSrc
-  logoSrc: null as string | null,   // 例：'/logo.svg'
-  tagline: '三源融合 · 用腦科學學語言',
+  name: 'MemoLingua',                  // App 名
+  logoText: ['Memo', 'Lingua'],        // [前段, 高亮段]；若用圖檔改 logoSrc
+  logoSrc: null as string | null,      // 例：'/logo.svg'
+  tagline: '用腦波學語言，記得更牢 🧠',
 
-  // ── 主色系 ──
+  // ── 主色系（青綠科技感）──
   colors: {
-    primary:   '#0f172a',   // 主色（深藍）— 按鈕、標題
-    accent:    '#06b6d4',   // 強調色（青）— EEG / CTA
-    // VARK 四型固定語意色（建議保留，辨識度高）
+    primary:   '#0e3a36',   // 主色（深青綠）— 按鈕、標題
+    accent:    '#14b8a6',   // 強調色（青綠）— EEG / CTA
+    // VARK 四型固定語意色（保留，辨識度高）
     visual:      '#6366F1',
     auditory:    '#EC4899',
     reading:     '#10B981',
     kinesthetic: '#F59E0B',
-    // 中性
-    ink:  '#1f2937',
+    // 中性（微帶青綠）
+    ink:  '#0e3a36',
     sub:  '#6b7280',
-    line: '#eef0f3',
-    bg:   '#f6f7f9',
+    line: '#e7eeec',
+    bg:   '#f3f8f7',
   },
 
   // ── 文案語氣 ──
   // tone: 'lively'(活潑) | 'professional'(專業) | 'minimal'(簡約)
-  tone: 'professional' as 'lively' | 'professional' | 'minimal',
+  tone: 'lively' as 'lively' | 'professional' | 'minimal',
 }
 
 /** 文案依語氣切換 */
