@@ -57,4 +57,13 @@ const { reply } = await r.json()
 muse.onState(s => fetch('/api/eeg', { method:'POST',
   body: JSON.stringify({ conversation_id, bands, state: s }) }))
 ```
-> 靜態 Demo 的 UI（測驗/雷達圖/記憶複習）可逐步搬成 React 元件接上這些 API。
+## 已搬成 React 元件的頁面（接真實 DB）
+| 路由 | 元件 | 接什麼 |
+|---|---|---|
+| `/quiz` | `components/vark/Quiz` | 讀 `vark_questions`、寫 `vark_responses`、呼叫 RPC `calculate_vark_quiz` |
+| `/profile` | `components/vark/FusionRadar` | 讀 `vark_profiles`，畫三源融合雷達圖 |
+| `/review` | `components/memory/ReviewDeck` | 讀到期 `memory_items`、FSRS 評分、寫 `memory_reviews` |
+
+> 需先在 Supabase 跑 schema 並插入題庫（對話中的 INSERT vark_questions）。
+> `memory_items` 需有 FSRS 欄位（fsrs.ts 底部的 ALTER TABLE）。
+> 登入頁 `/login` 尚未建，可用 Supabase Auth UI 或自建。
