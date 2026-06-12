@@ -28,17 +28,17 @@ export function useEEG(opts: { conversationId?: string; autoPost?: boolean } = {
 
   const connectMuse = useCallback(async () => {
     const c = new MuseClient()
-    c.onBands((b: any) => clientRef.current && setBands(b))
-    c.onState((s: EEGState) => push(clientRef.current?._lastBands ?? bands, s))
-    // 包一層拿 bands+state 一起送
-    c.onBands((b: any) => { c._lastBands = b })
+    let last: any = null
+    c.onBands((b: any) => { last = b })
+    c.onState((s: EEGState) => push(last, s))
     await c.connect(); clientRef.current = c; setMode('real')
   }, [push])
 
   const connectNeuro = useCallback(async () => {
     const c = new NeuroSkyClient()
-    c.onBands((b: any) => { c._lastBands = b })
-    c.onState((s: EEGState) => push(c._lastBands, s))
+    let last: any = null
+    c.onBands((b: any) => { last = b })
+    c.onState((s: EEGState) => push(last, s))
     await c.connect(); clientRef.current = c; setMode('neuro')
   }, [push])
 

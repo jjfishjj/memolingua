@@ -1,15 +1,15 @@
 'use client'
 import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewChat() {
   const router = useRouter()
-  const sp = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
     (async () => {
+      const sp = new URLSearchParams(window.location.search)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return router.push('/login')
       const { data } = await supabase.from('conversations').insert({

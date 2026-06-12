@@ -27,7 +27,7 @@ export function ReviewDeck({ userId, eegEngagement }: { userId: string; eegEngag
 
   const grade = async (item: any, rating: Rating) => {
     const card = fromDB(item)
-    const { card: next, interval } = review(card, rating, new Date(), { eegEngagement })
+    const { card: next, intervalDays: interval } = review(card, rating, new Date(), { eegEngagement })
     const patch = toDB(next)
     await supabase.from('memory_items').update(patch).eq('id', item.id)
     await supabase.from('memory_reviews').insert({
