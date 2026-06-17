@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * shadcn design tokens scoped to Brain Lab only.
+ * Defined on .brain-lab-scope (not :root) so they never collide with the
+ * brand's hex --primary / --accent vars injected globally in layout.tsx.
+ * Light theme only.
+ */
+.brain-lab-scope {
+  --background: 210 20% 98%;
+  --foreground: 220 25% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 25% 10%;
+  --primary: 174 72% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 96%;
+  --secondary-foreground: 220 25% 10%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 220 10% 45%;
+  --accent: 210 20% 94%;
+  --accent-foreground: 220 25% 10%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 15% 90%;
+  --input: 220 15% 90%;
+  --ring: 174 72% 40%;
+  --radius: 0.75rem;
+  color: hsl(var(--foreground));
+}

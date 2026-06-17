@@ -11,6 +11,7 @@ const NAV = [
   { href: '/profile',  icon: '🧠', title: '融合報告',     desc: '三源雷達圖與信賴度' },
   { href: '/chat/new', icon: '💬', title: '開始對話',     desc: 'AI 陪練 + 即時腦波' },
   { href: '/review',   icon: '📅', title: '記憶複習',     desc: 'FSRS 智慧排程' },
+  { href: '/brain-lab', icon: '🧪', title: 'Brain Lab',   desc: '腦波 × 2-Back × 素材庫' },
 ]
 
 export default function Home() {

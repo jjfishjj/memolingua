@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import './globals.css'
 import { BRAND, brandCssVars } from '@/lib/theme'
 
 export const metadata = {

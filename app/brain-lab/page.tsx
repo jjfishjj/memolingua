@@ -1,0 +1,396 @@
+'use client'
+export const dynamic = 'force-dynamic'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Brain, Activity, Zap, Library, Check } from 'lucide-react';
+import { DeviceConnector } from '@/components/brainwave/DeviceConnector';
+import { BrainwaveChart } from '@/components/brainwave/BrainwaveChart';
+import { BrainStateCard } from '@/components/brainwave/BrainStateCard';
+import { LearningAdvisor } from '@/components/brainwave/LearningAdvisor';
+import { NBackGame } from '@/components/brain-training/NBackGame';
+import { BrainwaveProvider, useBrainwave } from '@/contexts/BrainwaveContext';
+import { loadVARKProfile } from '@/lib/vark-service';
+import { VARKProfile, getStylePercentages, getDominantStyle } from '@/lib/vark-analyzer';
+import { LearningStyle } from '@/lib/learning-styles';
+import { getMaterialsByStyle, getRecommendedMaterials } from '@/lib/vark-materials-library';
+import { loadProgress, saveProgress, markCompleted } from '@/lib/material-progress';
+import { createClient } from '@/lib/supabase/client';
+
+function BrainLabInner() {
+  const { mode, bands, brainState, history, inferred } = useBrainwave();
+  const router = useRouter();
+  const [userId, setUserId] = useState<string>('guest');
+  const [varkProfile, setVarkProfile] = useState<VARKProfile | null>(null);
+  const [materialStyle, setMaterialStyle] = useState<LearningStyle>('visual');
+  const [materialCategory, setMaterialCategory] = useState<string>('All');
+  // Init empty; real progress loads in the effect below (localStorage is client-only).
+  const [progress, setProgress] = useState<{ completed: string[]; lastUsed: Record<string, string> }>({ completed: [], lastUsed: {} });
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const id = data.user?.id ?? 'guest';
+      setUserId(id);
+      const p = loadVARKProfile(id);
+      setVarkProfile(p);
+      if (p) setMaterialStyle(getDominantStyle(p));
+      setProgress(loadProgress(id));
+    });
+  }, []);
+
+  const dominantStyle = varkProfile ? getDominantStyle(varkProfile) : null;
+  const allMaterials = getMaterialsByStyle(materialStyle);
+  const categories = ['All', ...new Set(allMaterials.map(m => m.categoryZh))];
+  const filteredMaterials = materialCategory === 'All'
+    ? allMaterials
+    : allMaterials.filter(m => m.categoryZh === materialCategory);
+  const recommended = dominantStyle
+    ? getRecommendedMaterials(dominantStyle, brainState, progress.completed, 3)
+    : [];
+
+  return (
+    <div className="brain-lab-scope min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <button onClick={() => router.push('/')} className="text-sm text-muted-foreground hover:text-foreground mr-1">←</button>
+              <Brain className="w-6 h-6 text-blue-500" />
+              <h1 className="text-2xl font-bold">Brain Lab</h1>
+              <span className="text-lg text-muted-foreground">腦力學習實驗室</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              結合 EEG 腦波分析與 VARK 學習風格，提供即時個人化學習建議
+            </p>
+          </div>
+          {mode !== 'disconnected' && (
+            <Badge className="bg-emerald-500 gap-1.5">
+              <Activity className="w-3 h-3" /> 即時監測中
+            </Badge>
+          )}
+        </div>
+
+        {/* Device Connection */}
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">裝置連線</h2>
+          <DeviceConnector />
+        </section>
+
+        <Tabs defaultValue="advisor" className="space-y-4">
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="advisor" className="gap-1.5 text-xs sm:text-sm">
+              <Zap className="w-3.5 h-3.5" /> 學習建議
+            </TabsTrigger>
+            <TabsTrigger value="materials" className="gap-1.5 text-xs sm:text-sm">
+              <Library className="w-3.5 h-3.5" /> 素材庫
+            </TabsTrigger>
+            <TabsTrigger value="training" className="gap-1.5 text-xs sm:text-sm">
+              <Brain className="w-3.5 h-3.5" /> 腦力訓練
+            </TabsTrigger>
+            <TabsTrigger value="realtime" className="gap-1.5 text-xs sm:text-sm">
+              <Activity className="w-3.5 h-3.5" /> 腦波圖
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: Advisor */}
+          <TabsContent value="advisor" className="space-y-4">
+            {inferred && mode === 'behavioral' && (
+              <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+                <CardContent className="pt-4 pb-3 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-lg">{inferred.state === 'focus' ? '🎯' : inferred.state === 'relaxed' ? '🌊' : inferred.state === 'creative' ? '✨' : inferred.state === 'alert' ? '⚡' : '😴'}</span>
+                    <span className="font-semibold text-emerald-800">腦態推算結果</span>
+                    <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700">
+                      信心度 {Math.round(inferred.confidence * 100)}%
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-emerald-700">{inferred.reasoningZh}</p>
+                  {inferred.nextBestTimeZh && (
+                    <p className="text-xs text-teal-600">💡 {inferred.nextBestTimeZh}</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {varkProfile && (
+              <Card className="bg-gradient-to-r from-blue-50 to-violet-50 border-0">
+                <CardContent className="pt-4 pb-3 flex items-center gap-3 flex-wrap">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">你的 VARK 風格：</span>
+                    <span className="font-semibold ml-1">{dominantStyle}</span>
+                  </div>
+                  {Object.entries(getStylePercentages(varkProfile)).map(([style, pct]) => (
+                    <Badge key={style} variant="secondary" className="text-xs">{style} {pct}%</Badge>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            <LearningAdvisor varkProfile={varkProfile} />
+
+            {/* VARK × Brain State Matrix */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">VARK × 腦態最佳配對</CardTitle>
+                <CardDescription className="text-xs">不同腦態下最適合的學習方式</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {[
+                    { emoji: '🎯', state: '深度專注 (β)', style: '讀寫型', act: '文法練習、閱讀理解、作文', time: '9–11 AM / 2–4 PM' },
+                    { emoji: '🌊', state: '放鬆專注 (α)', style: '聽覺型', act: '聽力練習、發音、音樂學習', time: '下午 / 傍晚' },
+                    { emoji: '✨', state: '創意流動 (θ)', style: '動覺型', act: '角色扮演、自由對話、故事創作', time: '早晨 / 晚上' },
+                    { emoji: '⚡', state: '高度警覺 (γ)', style: '視覺型', act: '圖片描述、單字卡、影片理解', time: '早上 10–12' },
+                  ].map(row => (
+                    <div key={row.state} className="flex items-center gap-3 text-sm p-2 rounded-lg hover:bg-slate-50">
+                      <span className="text-lg w-8 text-center">{row.emoji}</span>
+                      <div className="w-28 shrink-0">
+                        <p className="font-medium text-xs">{row.state}</p>
+                        <p className="text-xs text-muted-foreground">{row.time}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs shrink-0">{row.style}</Badge>
+                      <span className="text-xs text-muted-foreground">{row.act}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 2: Practice Materials Library */}
+          <TabsContent value="materials" className="space-y-4">
+            {recommended.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">今日推薦</span>
+                  <Badge variant="outline" className="text-xs gap-1">
+                    {brainState === 'focus' ? '🎯' : brainState === 'relaxed' ? '🌊' : brainState === 'creative' ? '✨' : brainState === 'alert' ? '⚡' : '🧠'}
+                    {brainState === 'focus' ? '深度專注' : brainState === 'relaxed' ? '放鬆專注' : brainState === 'creative' ? '創意流動' : brainState === 'alert' ? '高度警覺' : '一般'} 模式
+                  </Badge>
+                  <span className="text-xs text-muted-foreground ml-auto">只顯示未完成</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {recommended.map(mat => (
+                    <Card key={mat.id} className="shrink-0 w-56 border-primary/30 bg-primary/5">
+                      <CardContent className="pt-3 pb-3 space-y-2">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs font-semibold line-clamp-1">{mat.titleZh}</p>
+                          <Badge variant="secondary" className="text-xs shrink-0">{mat.duration}分</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{mat.descriptionZh}</p>
+                        <button
+                          className="text-xs text-primary font-medium hover:underline w-full text-left"
+                          onClick={() => router.push('/chat/new')}
+                        >
+                          → 立即練習
+                        </button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Style filter */}
+            <div className="flex gap-2 flex-wrap">
+              {(['visual', 'auditory', 'reading', 'kinesthetic'] as LearningStyle[]).map(style => (
+                <button
+                  key={style}
+                  onClick={() => { setMaterialStyle(style); setMaterialCategory('All'); }}
+                  className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                    materialStyle === style
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-input hover:bg-accent'
+                  }`}
+                >
+                  {style === 'visual' ? '👁️ 視覺型' : style === 'auditory' ? '👂 聽覺型' : style === 'reading' ? '📖 讀寫型' : '🤸 動覺型'}
+                  {dominantStyle === style && <span className="ml-1 text-xs opacity-70">(你的)</span>}
+                </button>
+              ))}
+            </div>
+            {/* Category filter */}
+            <div className="flex gap-1.5 flex-wrap">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setMaterialCategory(cat)}
+                  className={`px-2.5 py-0.5 rounded-full text-xs border transition-colors ${
+                    materialCategory === cat ? 'bg-secondary text-secondary-foreground border-secondary' : 'border-input hover:bg-accent'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              {filteredMaterials.map(mat => {
+                const done = progress.completed.includes(mat.id);
+                return (
+                  <Card key={mat.id} className={`hover:shadow-md transition-shadow ${done ? 'opacity-70' : ''}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 min-w-0">
+                          {done && (
+                            <span className="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-emerald-100 border border-emerald-400 flex items-center justify-center">
+                              <Check className="w-2.5 h-2.5 text-emerald-600" />
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <CardTitle className="text-sm">{mat.titleZh}</CardTitle>
+                            <p className="text-xs text-muted-foreground">{mat.title}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                          <Badge variant="outline" className="text-xs">{mat.difficulty === 'beginner' ? '初級' : mat.difficulty === 'intermediate' ? '中級' : '高級'}</Badge>
+                          <Badge variant="secondary" className="text-xs">{mat.duration}分</Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-xs text-muted-foreground">{mat.descriptionZh}</p>
+                      <div className="flex gap-1 flex-wrap">
+                        <Badge variant="outline" className="text-xs">{mat.categoryZh}</Badge>
+                        {mat.bestBrainStates.map(s => (
+                          <Badge key={s} variant="outline" className="text-xs opacity-70">
+                            {s === 'focus' ? '🎯' : s === 'relaxed' ? '🌊' : s === 'creative' ? '✨' : s === 'alert' ? '⚡' : '🧠'} {s === 'focus' ? '專注' : s === 'relaxed' ? '放鬆' : s === 'creative' ? '創意' : s === 'alert' ? '警覺' : '一般'}
+                          </Badge>
+                        ))}
+                      </div>
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-primary hover:underline">查看 AI 練習提示</summary>
+                        <div className="mt-2 bg-slate-50 p-2.5 rounded space-y-2">
+                          <p className="text-muted-foreground leading-relaxed">{mat.prompt}</p>
+                          <button
+                            onClick={() => router.push('/chat/new')}
+                            className="text-primary font-medium hover:underline"
+                          >
+                            → 前往練習頁使用此提示
+                          </button>
+                        </div>
+                      </details>
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1">
+                          {mat.tags.map(tag => (
+                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground">#{tag}</span>
+                          ))}
+                        </div>
+                        {done ? (
+                          <button
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              const next = { ...progress, completed: progress.completed.filter(id => id !== mat.id) };
+                              saveProgress(userId, next);
+                              setProgress(next);
+                            }}
+                          >
+                            取消完成
+                          </button>
+                        ) : (
+                          <button
+                            className="text-xs text-emerald-600 font-medium hover:underline"
+                            onClick={() => {
+                              const p = markCompleted(userId, mat.id);
+                              setProgress({ ...p });
+                            }}
+                          >
+                            ✓ 標記完成
+                          </button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          {/* Tab 3: Brain Training */}
+          <TabsContent value="training" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">2-Back 工作記憶訓練</CardTitle>
+                <CardDescription>
+                  訓練工作記憶容量，研究顯示可提升語言學習的語法保留率和詞彙記憶速度
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <NBackGame onComplete={(results) => { console.log('N-back results:', results); }} />
+              </CardContent>
+            </Card>
+
+            <div className="grid sm:grid-cols-3 gap-3">
+              {[
+                { emoji: '🧠', title: '工作記憶', desc: '2-Back 任務', status: '可使用', available: true },
+                { emoji: '⚡', title: '注意力訓練', desc: '視覺追蹤遊戲', status: '即將推出', available: false },
+                { emoji: '🎯', title: '處理速度', desc: '快速詞彙配對', status: '即將推出', available: false },
+              ].map(ex => (
+                <Card key={ex.title} className={ex.available ? '' : 'opacity-60'}>
+                  <CardContent className="pt-4 text-center space-y-1">
+                    <div className="text-3xl">{ex.emoji}</div>
+                    <p className="text-sm font-medium">{ex.title}</p>
+                    <p className="text-xs text-muted-foreground">{ex.desc}</p>
+                    <Badge variant={ex.available ? 'default' : 'secondary'} className="text-xs">{ex.status}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Tab 4: Real-time EEG */}
+          <TabsContent value="realtime" className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <BrainStateCard state={brainState} bands={bands} />
+              </div>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">腦波頻帶即時圖</CardTitle>
+                  <CardDescription className="text-xs">最近 12 秒的頻帶功率變化</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BrainwaveChart history={history} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Band legend */}
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <div className="grid grid-cols-5 gap-2 text-center">
+                  {[
+                    { band: 'δ Delta', hz: '0.5–4', color: 'bg-gray-400', desc: '深層休息' },
+                    { band: 'θ Theta', hz: '4–8', color: 'bg-violet-500', desc: '創意記憶' },
+                    { band: 'α Alpha', hz: '8–13', color: 'bg-emerald-500', desc: '放鬆專注' },
+                    { band: 'β Beta', hz: '13–30', color: 'bg-blue-500', desc: '主動思考' },
+                    { band: 'γ Gamma', hz: '30–50', color: 'bg-amber-500', desc: '高階認知' },
+                  ].map(b => (
+                    <div key={b.band} className="space-y-1">
+                      <div className={`w-3 h-3 rounded-full mx-auto ${b.color}`} />
+                      <p className="text-xs font-medium">{b.band}</p>
+                      <p className="text-xs text-muted-foreground">{b.hz} Hz</p>
+                      <p className="text-xs text-muted-foreground">{b.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+export default function BrainLabPage() {
+  return (
+    <BrainwaveProvider>
+      <BrainLabInner />
+    </BrainwaveProvider>
+  );
+}
