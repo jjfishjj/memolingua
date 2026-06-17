@@ -12,7 +12,7 @@ import { BrainStateCard } from '@/components/brainwave/BrainStateCard';
 import { LearningAdvisor } from '@/components/brainwave/LearningAdvisor';
 import { NBackGame } from '@/components/brain-training/NBackGame';
 import { BrainwaveProvider, useBrainwave } from '@/contexts/BrainwaveContext';
-import { loadVARKProfile } from '@/lib/vark-service';
+import { loadVARKProfileBridged } from '@/lib/vark-bridge';
 import { VARKProfile, getStylePercentages, getDominantStyle } from '@/lib/vark-analyzer';
 import { LearningStyle } from '@/lib/learning-styles';
 import { getMaterialsByStyle, getRecommendedMaterials } from '@/lib/vark-materials-library';
@@ -31,10 +31,10 @@ function BrainLabInner() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const id = data.user?.id ?? 'guest';
       setUserId(id);
-      const p = loadVARKProfile(id);
+      const p = await loadVARKProfileBridged(id); // Supabase blended scores, falls back to localStorage
       setVarkProfile(p);
       if (p) setMaterialStyle(getDominantStyle(p));
       setProgress(loadProgress(id));
