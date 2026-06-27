@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>MemoLingua · VARK 蒐集後台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--v:#6366F1;--a:#EC4899;--r:#10B981;--k:#F59E0B;
+    --primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:22px;margin:0 0 2px}
+  .muted{color:var(--sub)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
+  .card h2{font-size:15px;margin:0 0 12px}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .kpi .b{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+  .kpi .n{font-size:26px;font-weight:800;color:var(--primary)}
+  .kpi .l{font-size:11px;color:var(--sub);margin-top:2px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(3,1fr)}}
+  .barrow{margin-bottom:9px}
+  .barlab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+  .bartrack{height:9px;background:#eef0f3;border-radius:99px;overflow:hidden}
+  .bartrack>div{height:100%;border-radius:99px;transition:.5s}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--sub);font-weight:600;font-size:12px}
+  .pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;color:#fff}
+  .reload{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
+  .err{color:#ef4444;font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div>
+      <h1>📊 VARK 蒐集後台</h1>
+      <p class="muted" style="font-size:13px;margin:2px 0 0">MemoLingua 公開量表 · 即時統計（僅彙總，無個資）</p>
+    </div>
+    <button class="reload" style="margin-left:auto" onclick="load()">↻ 重新整理</button>
+  </div>
+
+  <div class="kpi">
+    <div class="b"><div class="n" id="kTotal">—</div><div class="l">總填寫人數</div></div>
+    <div class="b"><div class="n" id="k7d">—</div><div class="l">近 7 天</div></div>
+    <div class="b"><div class="n" id="kEeg">—</div><div class="l">有連腦波</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>學習風格分佈</h2>
+      <canvas id="donut" height="200"></canvas>
+    </div>
+    <div class="card">
+      <h2>風格佔比</h2>
+      <div id="typeBars"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>大家在學什麼？（Top 20）</h2>
+    <div id="targets"><p class="muted" style="font-size:13px">載入中…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>最近填寫</h2>
+    <table><thead><tr><th>風格</th><th>在學</th><th>時間</th></tr></thead><tbody id="recent"></tbody></table>
+  </div>
+
+  <p id="err" class="err"></p>
+  <p class="muted" style="font-size:11px;margin-top:18px;text-align:center">資料來源：Supabase · public_vark_stats() · 此頁僅顯示彙總數字</p>
+</div>
+
+<script>
+const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
+const LABELS={visual:'👁️ 視覺型',auditory:'🎧 聽覺型',reading:'📖 讀寫型',kinesthetic:'🤸 體驗型'};
+const COLORS={visual:'#6366F1',auditory:'#EC4899',reading:'#10B981',kinesthetic:'#F59E0B'};
+const ORDER=['visual','auditory','reading','kinesthetic'];
+let donut;
+
+async function load(){
+  document.getElementById('err').textContent='';
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/rpc/public_vark_stats',{method:'POST',
+      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const s=await res.json();
+    render(s);
+  }catch(e){
+    document.getElementById('err').textContent='⚠ 載入失敗：'+e.message+'（請確認已在 Supabase 跑過 public_vark_collector.sql）';
+  }
+}
+
+function render(s){
+  document.getElementById('kTotal').textContent=s.total??0;
+  document.getElementById('k7d').textContent=s.last_7d??0;
+  document.getElementById('kEeg').textContent=s.eeg_used??0;
+
+  const by=s.by_dominant||{};
+  const counts=ORDER.map(k=>by[k]||0);
+  const total=counts.reduce((a,b)=>a+b,0)||1;
+
+  // donut
+  if(donut)donut.destroy();
+  donut=new Chart(document.getElementById('donut'),{type:'doughnut',
+    data:{labels:ORDER.map(k=>LABELS[k]),datasets:[{data:counts,backgroundColor:ORDER.map(k=>COLORS[k]),borderWidth:0}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:11}}}},cutout:'60%'}});
+
+  // type bars
+  document.getElementById('typeBars').innerHTML=ORDER.map(k=>{
+    const v=Math.round((by[k]||0)/total*100);
+    return `<div class="barrow"><div class="barlab"><span>${LABELS[k]}</span><span style="color:${COLORS[k]};font-weight:700">${v}% · ${by[k]||0}人</span></div><div class="bartrack"><div style="width:${v}%;background:${COLORS[k]}"></div></div></div>`;
+  }).join('');
+
+  // targets
+  const tg=s.by_target||[];
+  if(!tg.length){document.getElementById('targets').innerHTML='<p class="muted" style="font-size:13px">還沒有人填寫「在學什麼」。</p>';}
+  else{
+    const max=tg[0].count||1;
+    document.getElementById('targets').innerHTML=tg.map(t=>{
+      const w=Math.round(t.count/max*100);
+      return `<div class="barrow"><div class="barlab"><span>${esc(t.target)}</span><span class="muted">${t.count}</span></div><div class="bartrack"><div style="width:${w}%;background:var(--accent)"></div></div></div>`;
+    }).join('');
+  }
+
+  // recent
+  const rec=s.recent||[];
+  document.getElementById('recent').innerHTML=rec.length?rec.map(r=>{
+    const c=COLORS[r.dominant]||'#888';
+    return `<tr><td><span class="pill" style="background:${c}">${(LABELS[r.dominant]||r.dominant)}</span></td><td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`;
+  }).join(''):'<tr><td colspan="3" class="muted">尚無資料</td></tr>';
+}
+
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function fmt(iso){const d=new Date(iso);const p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+
+load();
+</script>
+</body>
+</html>

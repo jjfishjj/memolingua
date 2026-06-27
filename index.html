@@ -178,6 +178,17 @@
     <div class="insight cyan" id="eegInsight"></div>
     <div class="insight" id="aiNote"></div>
 
+    <!-- 加入統計（匿名寫入 Supabase） -->
+    <div class="card" id="collectCard">
+      <h2>📊 把你的結果加入統計</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:10px">完全匿名 · 幫助我們了解不同學習風格的人都在學什麼</p>
+      <input id="learnTarget" list="targetList" placeholder="你正在學什麼？例如：英文、日文、程式…"
+        style="width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;outline:none;box-sizing:border-box">
+      <datalist id="targetList"><option>英文</option><option>日文</option><option>韓文</option><option>德文</option><option>法文</option><option>西班牙文</option><option>中文</option><option>程式設計</option></datalist>
+      <button class="btn" style="margin-top:10px" onclick="submitResult(this)">送出我的結果（匿名）</button>
+      <div id="collectMsg" class="muted" style="font-size:12px;margin-top:8px;text-align:center"></div>
+    </div>
+
     <button class="btn" style="margin-top:16px" onclick="goScenario()">用我的風格開始練習 →</button>
     <button class="btn ghost" style="margin-top:10px" onclick="show('s1');curQ=0;renderQ()">重新測驗</button>
   </div>
@@ -717,6 +728,40 @@ function showToast(){
 function hideToast(){document.getElementById('toast').classList.remove('show');}
 
 renderFlow(0);
+
+/* ===== 公開 VARK 量表蒐集：匿名寫入 Supabase ===== */
+const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
+const VMAP={v:'visual',a:'auditory',r:'reading',k:'kinesthetic'};
+let collectDone=false;
+async function submitResult(btn){
+  if(collectDone)return;
+  const msg=document.getElementById('collectMsg');
+  const target=(document.getElementById('learnTarget').value||'').trim();
+  btn.disabled=true;btn.textContent='送出中…';msg.textContent='';
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/public_vark_submissions',{
+      method:'POST',
+      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({dominant:VMAP[dominant],secondary:VMAP[secondary],
+        score_v:scores.v,score_a:scores.a,score_r:scores.r,score_k:scores.k,
+        learning_target:target||null,eeg_used:!!eegOn,source:'github-pages'})
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    collectDone=true;
+    let n='';
+    try{
+      const s=await(await fetch(SUPA_URL+'/rest/v1/rpc/public_vark_stats',{method:'POST',
+        headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();
+      if(s&&s.total)n='　你是第 '+s.total+' 位填寫者！';
+    }catch(e){}
+    document.getElementById('collectCard').innerHTML=
+      '<h2>✅ 感謝你的填寫！</h2><p class="muted" style="font-size:13px;margin-top:6px">結果已匿名加入統計。'+n+'</p>';
+  }catch(e){
+    btn.disabled=false;btn.textContent='送出我的結果（匿名）';
+    msg.textContent='⚠ 送出失敗，請稍後再試（'+e.message+'）';
+  }
+}
 </script>
 </body>
 </html>
