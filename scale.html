@@ -123,8 +123,17 @@
       <div class="muted" id="collectMsg" style="text-align:center;margin-top:8px"></div>
     </div>
 
+    <!-- CTA：完整版報告 / 30天養成課 名單 -->
+    <div class="card" id="ctaCard" style="background:linear-gradient(135deg,#0e3a36,#14b8a6);color:#fff;border:none">
+      <h2 style="color:#fff">🚀 想要完整版？</h2>
+      <p style="font-size:13px;opacity:.92;margin:0 0 12px">解鎖你的<b>完整個人分析報告</b>、<b>語言學習路線圖</b>與<b>30 天記憶養成課</b>。留下 email，搶先取得。</p>
+      <input class="tin" id="leadEmail" type="email" placeholder="你的 email" style="border:none">
+      <button class="btn" style="background:#fff;color:var(--primary);margin-top:10px" onclick="submitLead(this)">免費搶先取得 →</button>
+      <div id="leadMsg" style="text-align:center;margin-top:8px;font-size:12px;opacity:.92"></div>
+    </div>
+
     <button class="btn ghost" onclick="location.reload()">🔄 重新測驗</button>
-    <p class="muted" style="text-align:center;margin-top:16px">想要完整版個人分析報告 · 語言學習路線圖 · 30 天養成課？<br>這份量表即為 MemoLingua 學習診斷的一部分。</p>
+    <a href="index.html" style="text-decoration:none"><div class="btn ghost" style="text-align:center">← 回 MemoLingua 三源融合 Demo</div></a>
   </div>
 
 </div>
@@ -297,6 +306,25 @@ async function submitResult(btn){
     try{const s=await(await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();if(s&&s.total)n='　你是第 '+s.total+' 位！';}catch(e){}
     $('collectCard').innerHTML='<h2>✅ 感謝你的填寫！</h2><p class="muted">結果已匿名加入統計。'+n+'</p>';
   }catch(e){btn.disabled=false;btn.textContent='送出（匿名）';msg.textContent='⚠ 送出失敗：'+e.message;}
+}
+
+/* ===== email 名單（完整版報告 / 30天養成課） ===== */
+let leadDone=false;
+async function submitLead(btn){
+  if(leadDone)return;
+  const email=($('leadEmail').value||'').trim();
+  const msg=$('leadMsg');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.textContent='⚠ 請輸入有效的 email';return;}
+  const r=window._result||{};
+  btn.disabled=true;btn.textContent='送出中…';msg.textContent='';
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/scale_leads',{method:'POST',
+      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({email,top1:r.top1||null,top2:r.top2||null,learning_target:($('learnTarget').value||'').trim()||null,source:'scale'})});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    leadDone=true;
+    $('ctaCard').innerHTML='<h2 style="color:#fff">🎉 已收到！</h2><p style="font-size:13px;opacity:.92;margin:6px 0 0">完整版報告與 30 天養成課上線時，會第一時間寄到 '+email.replace(/[<>]/g,'')+'。</p>';
+  }catch(e){btn.disabled=false;btn.textContent='免費搶先取得 →';msg.textContent='⚠ 送出失敗：'+e.message;}
 }
 </script>
 </body>
