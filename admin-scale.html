@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>MemoLingua · 記憶天份量表 後台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:780px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:22px;margin:0 0 2px}.muted{color:var(--sub)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
+  .card h2{font-size:15px;margin:0 0 12px}
+  .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  .kpi .b{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+  .kpi .n{font-size:26px;font-weight:800;color:var(--primary)}.kpi .l{font-size:11px;color:var(--sub);margin-top:2px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  .barrow{margin-bottom:9px}.barlab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+  .bartrack{height:9px;background:#eef0f3;border-radius:99px;overflow:hidden}.bartrack>div{height:100%;border-radius:99px;transition:.5s}
+  table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}th{color:var(--sub);font-weight:600;font-size:12px}
+  .reload{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
+  .err{color:#ef4444;font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div><h1>🧠 記憶天份量表 後台</h1><p class="muted" style="font-size:13px;margin:2px 0 0">僅彙總，無個資</p></div>
+    <button class="reload" style="margin-left:auto" onclick="load()">↻ 重新整理</button>
+  </div>
+
+  <div class="kpi">
+    <div class="b"><div class="n" id="kTotal">—</div><div class="l">總填寫人數</div></div>
+    <div class="b"><div class="n" id="k7d">—</div><div class="l">近 7 天</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h2>主導天份分佈</h2><canvas id="donut" height="210"></canvas></div>
+    <div class="card"><h2>平均輸入偏好</h2><canvas id="radar" height="210"></canvas></div>
+  </div>
+
+  <div class="card"><h2>八大天份佔比</h2><div id="archBars"></div></div>
+  <div class="card"><h2>熱門組合 Top 12</h2><div id="combos"></div></div>
+  <div class="card"><h2>大家在學什麼？ Top 20</h2><div id="targets"><p class="muted" style="font-size:13px">載入中…</p></div></div>
+  <div class="card"><h2>最近填寫</h2><table><thead><tr><th>主導</th><th>次要</th><th>在學</th><th>時間</th></tr></thead><tbody id="recent"></tbody></table></div>
+
+  <p id="err" class="err"></p>
+</div>
+
+<script>
+const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
+const ARCH={img:['💠 圖像建構者','#6366F1'],snd:['🎧 聲音模仿者','#EC4899'],txt:['📑 文字整理者','#10B981'],act:['🎯 情境行動者','#F59E0B'],soc:['🗣️ 社交輸出者','#06b6d4'],sys:['📈 系統累積者','#8b5cf6'],cre:['✨ 創意連結者','#f43f5e'],biz:['💼 商業應用者','#0ea5e9']};
+const ORDER=['img','snd','txt','act','soc','sys','cre','biz'];
+let donut,radar;
+
+async function load(){
+  document.getElementById('err').textContent='';
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    render(await res.json());
+  }catch(e){document.getElementById('err').textContent='⚠ 載入失敗：'+e.message+'（請先在 Supabase 跑 memory_scale_collector.sql）';}
+}
+function lbl(k){return (ARCH[k]||[k])[0];}
+function col(k){return (ARCH[k]||['',''])[1]||'#888';}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function fmt(iso){const d=new Date(iso),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+
+function render(s){
+  document.getElementById('kTotal').textContent=s.total??0;
+  document.getElementById('k7d').textContent=s.last_7d??0;
+  const by=s.by_top1||{};const counts=ORDER.map(k=>by[k]||0);const total=counts.reduce((a,b)=>a+b,0)||1;
+
+  if(donut)donut.destroy();
+  donut=new Chart(document.getElementById('donut'),{type:'doughnut',
+    data:{labels:ORDER.map(lbl),datasets:[{data:counts,backgroundColor:ORDER.map(col),borderWidth:0}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},cutout:'58%'}});
+
+  const ai=s.avg_input||{v:0,a:0,t:0,act:0};
+  if(radar)radar.destroy();
+  radar=new Chart(document.getElementById('radar'),{type:'radar',
+    data:{labels:['視覺','聽覺','文字','動作'],datasets:[{label:'平均',data:[ai.v*100,ai.a*100,ai.t*100,ai.act*100],borderColor:'#14b8a6',backgroundColor:'#14b8a625',borderWidth:2}]},
+    options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:12}}}}}});
+
+  const max=Math.max(...counts)||1;
+  document.getElementById('archBars').innerHTML=ORDER.slice().sort((a,b)=>(by[b]||0)-(by[a]||0)).map(k=>{
+    const v=Math.round((by[k]||0)/total*100);
+    return `<div class="barrow"><div class="barlab"><span>${lbl(k)}</span><span style="color:${col(k)};font-weight:700">${v}% · ${by[k]||0}</span></div><div class="bartrack"><div style="width:${v}%;background:${col(k)}"></div></div></div>`;
+  }).join('');
+
+  const cb=s.combos||[];
+  document.getElementById('combos').innerHTML=cb.length?cb.map(c=>{
+    const parts=c.combo.split(' + ');const nm=parts.map(p=>lbl(p.trim())).join(' + ');
+    return `<div class="barlab" style="padding:4px 0;border-bottom:1px solid var(--line)"><span>${esc(nm)}</span><span class="muted">${c.count}</span></div>`;
+  }).join(''):'<p class="muted" style="font-size:13px">尚無資料</p>';
+
+  const tg=s.by_target||[];const tmax=tg.length?tg[0].count:1;
+  document.getElementById('targets').innerHTML=tg.length?tg.map(t=>{
+    const w=Math.round(t.count/tmax*100);
+    return `<div class="barrow"><div class="barlab"><span>${esc(t.target)}</span><span class="muted">${t.count}</span></div><div class="bartrack"><div style="width:${w}%;background:var(--accent)"></div></div></div>`;
+  }).join(''):'<p class="muted" style="font-size:13px">還沒有人填「在學什麼」。</p>';
+
+  const rec=s.recent||[];
+  document.getElementById('recent').innerHTML=rec.length?rec.map(r=>
+    `<tr><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td><td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`
+  ).join(''):'<tr><td colspan="4" class="muted">尚無資料</td></tr>';
+}
+load();
+</script>
+</body>
+</html>

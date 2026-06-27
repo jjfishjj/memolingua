@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MemoLingua · 記憶天份量表 🧠</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;background:#fff}
+  .screen{display:none;padding:24px 20px 48px;animation:fade .35s}
+  .screen.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h1{font-size:23px;margin:0 0 6px}
+  h2{font-size:15px;margin:0 0 10px}
+  .muted{color:var(--sub);font-size:13px}
+  .btn{width:100%;padding:14px;border:none;border-radius:14px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px}
+  .btn.accent{background:var(--accent)}
+  .btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .hero{border-radius:20px;padding:22px;color:#fff;margin-bottom:14px}
+  .hero .em{font-size:46px;line-height:1}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
+  .opt{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;padding:14px;border:2px solid var(--line);background:#fff;border-radius:14px;margin-bottom:10px;cursor:pointer;font-size:14px;transition:.15s}
+  .opt.sel{border-color:var(--accent);background:#e6faf6}
+  .opt .ic{font-size:19px}
+  .prog{height:8px;background:#eef0f3;border-radius:99px;overflow:hidden;margin:8px 0 18px}
+  .prog>div{height:100%;background:linear-gradient(90deg,var(--accent),#6366F1);transition:.4s}
+  .barrow{margin-bottom:9px}
+  .barlab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+  .bartrack{height:9px;background:#eef0f3;border-radius:99px;overflow:hidden}
+  .bartrack>div{height:100%;border-radius:99px;transition:.6s}
+  .sec{border-left:3px solid var(--accent);padding:2px 0 2px 12px;margin:14px 0}
+  .sec b{font-size:14px}
+  .sec p{margin:4px 0 0;font-size:13px;color:#374151}
+  .chip{display:inline-block;font-size:12px;padding:4px 11px;border-radius:99px;background:#eef6f4;color:var(--primary);margin:3px 4px 0 0}
+  .phase{display:flex;gap:10px;margin-top:10px}
+  .phase .day{flex-shrink:0;width:64px;font-weight:800;color:var(--accent);font-size:13px}
+  .phase .txt{font-size:13px;color:#374151}
+  input.tin{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;outline:none}
+  .tag{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.22);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- intro -->
+  <div class="screen on" id="s0">
+    <div style="text-align:center;padding-top:30px">
+      <div style="font-size:54px">🧠</div>
+      <h1>記憶天份量表</h1>
+      <p class="muted">12 題，找出你的<b>記憶天份類型</b>，拿到專屬的<br>語言學習路線、複習節奏與 30 天養成計畫。</p>
+    </div>
+    <div class="card">
+      <h2>你會得到</h2>
+      <p class="muted" style="line-height:1.9">
+        🏅 你的記憶天份名稱（可能是組合型）<br>
+        📊 你的學習指標分數（視覺／聽覺／文字／動作）<br>
+        🗺️ 你的語言學習路線<br>
+        🔁 你的複習節奏 + 錯誤修正方法<br>
+        🎯 你的最佳應用場景<br>
+        📅 你的 30 天記憶養成計畫
+      </p>
+    </div>
+    <button class="btn" onclick="start()">開始測驗 →</button>
+    <p class="muted" style="text-align:center;margin-top:14px">完全匿名 · 約 2 分鐘</p>
+  </div>
+
+  <!-- quiz -->
+  <div class="screen" id="s1">
+    <div class="muted" style="display:flex;justify-content:space-between"><span id="qNo"></span><span id="qPct"></span></div>
+    <div class="prog"><div id="progBar" style="width:0"></div></div>
+    <div class="muted" id="qCtx" style="font-style:italic;margin-bottom:4px"></div>
+    <h2 id="qText" style="font-size:18px"></h2>
+    <div id="qOpts" style="margin-top:14px"></div>
+    <button class="btn ghost" id="backBtn" style="margin-top:4px" onclick="back()">← 上一題</button>
+  </div>
+
+  <!-- report -->
+  <div class="screen" id="s2">
+    <div class="hero" id="hero">
+      <div class="em" id="hEmo">🧠</div>
+      <div style="opacity:.8;font-size:12px;margin-top:6px">你的記憶天份</div>
+      <h1 id="hName" style="margin:2px 0;color:#fff">—</h1>
+      <div id="hCombo" style="opacity:.9;font-size:13px"></div>
+      <div class="tag" id="hGift"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 學習指標</h2>
+      <canvas id="radar" height="230"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>🏅 八大記憶天份得分</h2>
+      <div id="archBars"></div>
+    </div>
+
+    <div class="card">
+      <h2>🗺️ 你的個人化學習方案</h2>
+      <div class="sec"><b>🎁 你的記憶天份</b><p id="rGift"></p></div>
+      <div class="sec"><b>🗺️ 語言學習路線</b><p id="rRoute"></p></div>
+      <div class="sec"><b>🔁 複習節奏</b><p id="rRhythm"></p></div>
+      <div class="sec"><b>🔧 錯誤修正方法</b><p id="rFix"></p></div>
+      <div class="sec"><b>🎯 最佳應用場景</b><p id="rScene"></p></div>
+      <div style="margin-top:12px"><b style="font-size:14px">💡 適合的策略</b><div id="rStrat" style="margin-top:6px"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>📅 你的 30 天記憶養成計畫</h2>
+      <div id="rPlan"></div>
+    </div>
+
+    <!-- collect -->
+    <div class="card" id="collectCard">
+      <h2>📥 把結果加入統計（匿名）</h2>
+      <p class="muted" style="margin-bottom:10px">你正在學什麼語言／東西？幫助我們優化推薦</p>
+      <input class="tin" id="learnTarget" list="tl" placeholder="例如：英文、日文、多益、程式…">
+      <datalist id="tl"><option>英文</option><option>日文</option><option>韓文</option><option>多益 TOEIC</option><option>雅思 IELTS</option><option>德文</option><option>法文</option><option>程式設計</option></datalist>
+      <button class="btn accent" onclick="submitResult(this)">送出（匿名）</button>
+      <div class="muted" id="collectMsg" style="text-align:center;margin-top:8px"></div>
+    </div>
+
+    <button class="btn ghost" onclick="location.reload()">🔄 重新測驗</button>
+    <p class="muted" style="text-align:center;margin-top:16px">想要完整版個人分析報告 · 語言學習路線圖 · 30 天養成課？<br>這份量表即為 MemoLingua 學習診斷的一部分。</p>
+  </div>
+
+</div>
+
+<script>
+/* ===== 八大記憶天份 ===== */
+const ARCH={
+ img:{name:'圖像建構者',emoji:'💠',color:'#6366F1',gift:'你靠畫面、空間與顏色記憶，看過的東西容易在腦中「成像」。',
+   strat:['mind map','圖像單字卡','場景記憶'],
+   route:'圖像聯想 → 場景串連 → 看圖說話 → 間隔複習',
+   rhythm:'低頻深練——一次用圖像把整組記牢，隔幾天回看一次。',
+   fix:'把錯誤畫成 before / after 對比圖，用顏色標出錯點，看一眼就記住。',
+   scene:'看影片描述、圖片作文、簡報視覺化、心智圖筆記。',
+   plan:[['Day 1–10','建立圖像單字卡庫：每天 10 張，配顏色與空間位置。'],['Day 11–20','用心智圖整理文法，看圖說故事練輸出。'],['Day 21–30','場景記憶：把生活場景配上英文，做成圖文筆記。']]},
+ snd:{name:'聲音模仿者',emoji:'🎧',color:'#EC4899',gift:'你靠語音、節奏與語調記憶，聽過的句子會在腦中「迴盪」。',
+   strat:['shadowing 跟讀','朗讀錄音','音檔循環'],
+   route:'聽力浸泡 → shadowing → 跟讀錄音 → 對話輸出',
+   rhythm:'高頻短練——每天循環同一段音檔 10–15 分鐘。',
+   fix:'把唸錯的句子錄下來，對照母語者音檔逐句修正語調。',
+   scene:'口說練習、發音矯正、Podcast 跟讀、語音日記。',
+   plan:[['Day 1–10','每天 shadowing 一段 1 分鐘音檔，跟到順為止。'],['Day 11–20','錄自己朗讀，與原音比對找差距。'],['Day 21–30','無稿對話與語音日記，把語調內化成口說。']]},
+ txt:{name:'文字整理者',emoji:'📑',color:'#10B981',gift:'你靠筆記、定義與分類記憶，把資訊結構化後記得最牢。',
+   strat:['摘要','表格','語法規則','錯題本'],
+   route:'規則理解 → 筆記分類 → 例句歸納 → 錯題複習',
+   rhythm:'低頻深練 + 錯題本——一次弄懂，每週回看錯題。',
+   fix:'建錯題本，依文法類別分類，每週固定回顧一次。',
+   scene:'文法精修、閱讀理解、寫作、考試準備。',
+   plan:[['Day 1–10','建立單字／文法筆記系統（分類 + 例句）。'],['Day 11–20','每天寫一篇摘要或短文，套用學到的規則。'],['Day 21–30','錯題本複盤，把錯句改寫正確並歸納規律。']]},
+ act:{name:'情境行動者',emoji:'🎯',color:'#F59E0B',gift:'你靠操作、角色扮演與實用任務記憶，做過一次就記住。',
+   strat:['對話演練','任務式學習','沉浸場景'],
+   route:'進場景 → 角色扮演 → 拆常用句型 → 間隔複習 → 真實輸出',
+   rhythm:'任務驅動——有情境或任務才練，練完立刻用出去。',
+   fix:'把錯句變成「下一個任務」，當場重做一次直到對。',
+   scene:'情境對話、旅遊／職場模擬、沉浸式練習。',
+   plan:[['Day 1–10','每天一個生活場景對話（點餐、問路、購物）。'],['Day 11–20','任務闖關：面試、客服、簡報情境演練。'],['Day 21–30','真實場合輸出，錄影複盤並修正常用句型。']]},
+ soc:{name:'社交輸出者',emoji:'🗣️',color:'#06b6d4',gift:'你靠分享、教人與互動記憶，講出來、教出去就內化了。',
+   strat:['小組討論','教學輸出','口說陪跑'],
+   route:'輸入 → 教學重述 → 討論互動 → 口說陪跑',
+   rhythm:'任務驅動（教學輸出）——學完就找人講、找人教。',
+   fix:'教別人時被問倒的點，就是你要補的洞，記下來補強。',
+   scene:'語言交換、讀書會、教學／簡報、口說陪跑。',
+   plan:[['Day 1–10','每天把學到的內容講給一個人（或鏡頭）聽。'],['Day 11–20','加入語言交換或讀書會，固定互動輸出。'],['Day 21–30','主持一次小型分享或教學，把知識教出去。']]},
+ sys:{name:'系統累積者',emoji:'📈',color:'#8b5cf6',gift:'你靠規律、數據與複習節奏記憶，靠系統長期累積最強。',
+   strat:['Anki','streak 連續','間隔複習','進度追蹤'],
+   route:'建卡片庫 → 每日間隔複習 → 數據追蹤 → 階段檢核',
+   rhythm:'高頻短練 + 間隔複習（SRS）——每天固定，交給演算法排程。',
+   fix:'用 Anki 把錯題做成卡片，交給間隔演算法自動安排重練。',
+   scene:'長期單字累積、考試準備、學習習慣養成。',
+   plan:[['Day 1–10','建立 Anki 牌組並養成每日複習習慣。'],['Day 11–20','維持 streak，加入每週數據檢視。'],['Day 21–30','擴充牌組，針對低正確率卡片加強複習。']]},
+ cre:{name:'創意連結者',emoji:'✨',color:'#f43f5e',gift:'你靠比喻、故事與聯想記憶，越奇特的連結記得越牢。',
+   strat:['記憶宮殿','故事化單字','跨域連結'],
+   route:'聯想建構 → 故事串連 → 記憶宮殿 → 間隔複習',
+   rhythm:'低頻深練——一次編好故事或宮殿，隔段時間回放。',
+   fix:'把錯誤編進故事的「轉折」，用荒謬或誇張畫面標記它。',
+   scene:'大量單字記憶、片語慣用語、創意寫作。',
+   plan:[['Day 1–10','用故事法記 100 個單字（每個配一個畫面）。'],['Day 11–20','建一座記憶宮殿，放進文法與句型。'],['Day 21–30','跨域聯想 + 創意寫作，把單字串成短篇。']]},
+ biz:{name:'商業應用者',emoji:'💼',color:'#0ea5e9',gift:'你靠目標、成果與場景壓力記憶，有明確用途就學得快。',
+   strat:['簡報','銷售腳本','職場英文','考試任務'],
+   route:'設定目標 → 場景腳本 → 高壓演練 → 成果驗收',
+   rhythm:'考試／目標驅動——以 deadline 與成果反推練習量。',
+   fix:'用「實戰失誤」當教材，針對場景台詞反覆打磨。',
+   scene:'職場英文、簡報、面試、證照考試。',
+   plan:[['Day 1–10','鎖定目標場景並建立專屬台詞腳本。'],['Day 11–20','高壓模擬：簡報、面試、客戶對話。'],['Day 21–30','實戰驗收，針對弱點場景衝刺。']]},
+};
+const KEYS=['img','snd','txt','act','soc','sys','cre','biz'];
+// 各天份的「輸入偏好」剖面 [視覺,聽覺,文字,動作]
+const INPUT={img:[.9,.2,.4,.3],snd:[.2,.9,.3,.4],txt:[.4,.2,.9,.2],act:[.3,.4,.2,.9],
+  soc:[.3,.7,.3,.7],sys:[.4,.2,.7,.3],cre:[.7,.3,.5,.4],biz:[.5,.5,.6,.7]};
+
+/* ===== 題目（每選項對應一種天份） ===== */
+const Q=[
+ {q:'記一個新單字，你最自然的方式是？',o:[['🖼️','把它畫成圖、配顏色或位置','img'],['🔊','大聲唸、聽發音反覆模仿','snd'],['📝','寫下定義、例句並分類整理','txt'],['🎬','馬上用它造句、在情境裡用','act']]},
+ {q:'你最想用哪種方式「輸出」學到的東西？',o:[['🗣️','講給別人聽、教別人','soc'],['📊','默默累積、追蹤進度數據','sys'],['✨','編成故事或聯想','cre'],['💼','用在工作、考試或實際目標','biz']]},
+ {q:'複習時你偏好的節奏是？',o:[['⏱️','每天短短幾分鐘高頻練','sys'],['📚','偶爾一次深入弄懂','txt'],['🎯','有任務或場景才練','act'],['🏁','為了考試或 deadline 衝刺','biz']]},
+ {q:'聽不懂一段英文時，你會？',o:[['👀','看字幕、畫面找線索','img'],['🎧','反覆聽、模仿語調','snd'],['🔍','查逐字稿逐句拆解','txt'],['💬','直接回應、邊做邊猜','act']]},
+ {q:'你覺得學語言最大的阻礙是？',o:[['🧠','容易忘、記不牢','sys'],['📐','容易卡文法','txt'],['😶','容易怕開口','soc'],['😅','容易拖延、沒有目標感','biz']]},
+ {q:'哪種學習活動讓你最投入？',o:[['🗺️','畫心智圖、做圖卡','img'],['🎤','shadowing 跟讀音檔','snd'],['👥','小組討論、教別人','soc'],['🕹️','角色扮演、任務闖關','act']]},
+ {q:'你記得最牢的經驗，通常是？',o:[['🌆','一個畫面或場景','img'],['🎵','一句話的聲音語調','snd'],['📖','一個故事或比喻','cre'],['🤝','一次真實做過的事','act']]},
+ {q:'看到 streak 連續紀錄或進度圖，你？',o:[['🔥','很有動力想維持','sys'],['🎯','還好，比較看重用得上','biz'],['🗂️','喜歡把資料整理成表','txt'],['🏃','想趕快去對話練習','act']]},
+ {q:'你最想要的學習成果是？',o:[['💬','能流利對話','act'],['💼','能通過考試／職場能用','biz'],['🧑‍🏫','能教別人、分享','soc'],['📈','能有系統地長期累積','sys']]},
+ {q:'背一組句型，你會？',o:[['🖼️','想像使用的畫面','img'],['🔊','唸出來聽節奏','snd'],['📋','整理成表格或規則','txt'],['📚','編成一個小故事','cre']]},
+ {q:'你最喜歡哪種單字記法？',o:[['🎴','圖像聯想卡','img'],['🔁','音檔循環','snd'],['🏰','記憶宮殿、故事','cre'],['👫','教別人或造對話','soc']]},
+ {q:'你理想的學習陪伴是？',o:[['📅','給我數據和複習排程','sys'],['🎯','給我真實任務和場景','act'],['🗣️','給我口說陪跑夥伴','soc'],['💼','給我目標導向的計畫','biz']]},
+];
+
+let cur=0, ans=[], radar;
+const $=id=>document.getElementById(id);
+const show=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);};
+
+function start(){cur=0;ans=[];show('s1');renderQ();}
+function renderQ(){
+  const item=Q[cur];
+  $('qNo').textContent='第 '+(cur+1)+' / '+Q.length+' 題';
+  $('qPct').textContent=Math.round((cur+1)/Q.length*100)+'%';
+  $('progBar').style.width=Math.round((cur+1)/Q.length*100)+'%';
+  $('qCtx').textContent='';
+  $('qText').textContent=item.q;
+  $('backBtn').style.display=cur>0?'block':'none';
+  $('qOpts').innerHTML=item.o.map((o,i)=>
+    `<button class="opt${ans[cur]===i?' sel':''}" onclick="pick(${i})"><span class="ic">${o[0]}</span><span>${o[1]}</span></button>`).join('');
+}
+function pick(i){
+  ans[cur]=i;
+  if(cur+1<Q.length){cur++;renderQ();}
+  else finish();
+}
+function back(){if(cur>0){cur--;renderQ();}}
+
+function finish(){
+  const sc={};KEYS.forEach(k=>sc[k]=0);
+  ans.forEach((i,qi)=>{const key=Q[qi].o[i][2];sc[key]++;});
+  const sorted=KEYS.slice().sort((a,b)=>sc[b]-sc[a]);
+  const top1=sorted[0], top2=sorted[1];
+  window._result={sc,top1,top2};
+  renderReport(sc,top1,top2);
+  show('s2');
+}
+
+function renderReport(sc,top1,top2){
+  const A=ARCH[top1], B=ARCH[top2];
+  const h=$('hero');h.style.background=`linear-gradient(135deg,${A.color}cc,${A.color})`;
+  $('hEmo').textContent=A.emoji;
+  $('hName').textContent=A.name;
+  $('hCombo').textContent='主導：'+A.name+'　·　次要：'+B.name+' '+B.emoji;
+  $('hGift').textContent=A.strat.slice(0,3).join(' · ');
+  // input radar：以天份得分加權
+  const totalSc=KEYS.reduce((s,k)=>s+sc[k],0)||1;
+  const inp=[0,0,0,0];
+  KEYS.forEach(k=>{const w=sc[k]/totalSc;INPUT[k].forEach((v,j)=>inp[j]+=v*w);});
+  const inpPct=inp.map(v=>Math.round(v*100));
+  if(radar)radar.destroy();
+  radar=new Chart($('radar'),{type:'radar',
+    data:{labels:['視覺','聽覺','文字','動作'],datasets:[{label:'輸入偏好',data:inpPct,
+      borderColor:A.color,backgroundColor:A.color+'25',borderWidth:2,pointBackgroundColor:A.color}]},
+    options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:13}}}}}});
+  // arch bars
+  const max=Math.max(...KEYS.map(k=>sc[k]))||1;
+  $('archBars').innerHTML=KEYS.slice().sort((a,b)=>sc[b]-sc[a]).map(k=>{
+    const A2=ARCH[k],w=Math.round(sc[k]/max*100),isTop=(k===top1||k===top2);
+    return `<div class="barrow"><div class="barlab"><span>${A2.emoji} ${A2.name}${isTop?' ⭐':''}</span><span style="color:${A2.color};font-weight:700">${sc[k]}</span></div><div class="bartrack"><div style="width:${w}%;background:${A2.color};opacity:${isTop?1:.45}"></div></div></div>`;
+  }).join('');
+  // sections
+  const combo=top1!==top2?`你是「${A.name} + ${B.name}」型學習者。`:`你是「${A.name}」型學習者。`;
+  $('rGift').textContent=combo+' '+A.gift;
+  $('rRoute').textContent=A.route;
+  $('rRhythm').textContent=A.rhythm;
+  $('rFix').textContent=A.fix;
+  $('rScene').textContent=A.scene;
+  $('rStrat').innerHTML=A.strat.concat(B.strat).filter((v,i,a)=>a.indexOf(v)===i).map(s=>`<span class="chip">${s}</span>`).join('');
+  $('rPlan').innerHTML=A.plan.map(p=>`<div class="phase"><div class="day">${p[0]}</div><div class="txt">${p[1]}</div></div>`).join('');
+}
+
+/* ===== 匿名寫入 Supabase ===== */
+const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
+let collectDone=false;
+async function submitResult(btn){
+  if(collectDone||!window._result)return;
+  const {sc,top1,top2}=window._result;
+  const msg=$('collectMsg');const target=($('learnTarget').value||'').trim();
+  btn.disabled=true;btn.textContent='送出中…';msg.textContent='';
+  const totalSc=KEYS.reduce((s,k)=>s+sc[k],0)||1;
+  const inp=[0,0,0,0];KEYS.forEach(k=>{const w=sc[k]/totalSc;INPUT[k].forEach((v,j)=>inp[j]+=v*w);});
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/memory_scale_submissions',{method:'POST',
+      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({top1,top2,scores:sc,in_v:+inp[0].toFixed(3),in_a:+inp[1].toFixed(3),in_t:+inp[2].toFixed(3),in_act:+inp[3].toFixed(3),learning_target:target||null,source:'github-pages'})});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    collectDone=true;let n='';
+    try{const s=await(await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();if(s&&s.total)n='　你是第 '+s.total+' 位！';}catch(e){}
+    $('collectCard').innerHTML='<h2>✅ 感謝你的填寫！</h2><p class="muted">結果已匿名加入統計。'+n+'</p>';
+  }catch(e){btn.disabled=false;btn.textContent='送出（匿名）';msg.textContent='⚠ 送出失敗：'+e.message;}
+}
+</script>
+</body>
+</html>
