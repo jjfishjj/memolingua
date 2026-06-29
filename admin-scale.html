@@ -24,13 +24,30 @@
   table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}th{color:var(--sub);font-weight:600;font-size:12px}
   .reload{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
   .err{color:#ef4444;font-size:13px;margin-top:10px}
+  .tin{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;outline:none;margin-bottom:10px}
+  /* login gate */
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:99;display:flex;align-items:center;justify-content:center;padding:20px}
 </style>
 </head>
 <body>
+
+<!-- 🔐 管理員登入閘門 -->
+<div id="gate">
+  <div class="card" style="max-width:360px;width:100%;margin:0">
+    <div style="text-align:center"><div style="font-size:38px">🔐</div><h1 style="margin-top:6px">後台登入</h1>
+      <p class="muted" style="font-size:13px">僅限管理員。請用你的 MemoLingua 帳號登入。</p></div>
+    <input id="gEmail" class="tin" type="email" placeholder="Email" style="margin-top:14px">
+    <input id="gPw" class="tin" type="password" placeholder="密碼" onkeydown="if(event.key==='Enter')adminLogin(this)">
+    <button class="reload" style="width:100%;padding:12px" onclick="adminLogin(this)">登入</button>
+    <div id="gMsg" class="err" style="text-align:center"></div>
+  </div>
+</div>
+
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:10px">
-    <div><h1>🧠 記憶天份量表 後台</h1><p class="muted" style="font-size:13px;margin:2px 0 0">僅彙總，無個資</p></div>
+    <div><h1>🧠 記憶天份量表 後台</h1><p class="muted" style="font-size:13px;margin:2px 0 0">僅彙總，無個資 · 🔒 管理員專用</p></div>
     <button class="reload" style="margin-left:auto" onclick="load()">↻ 重新整理</button>
+    <button class="reload" style="background:#fff;color:var(--sub);border:1px solid var(--line)" onclick="logout()">登出</button>
   </div>
 
   <div class="kpi">
@@ -73,67 +90,87 @@ const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
 const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
 const ARCH={img:['💠 圖像建構者','#6366F1'],snd:['🎧 聲音模仿者','#EC4899'],txt:['📑 文字整理者','#10B981'],act:['🎯 情境行動者','#F59E0B'],soc:['🗣️ 社交輸出者','#06b6d4'],sys:['📈 系統累積者','#8b5cf6'],cre:['✨ 創意連結者','#f43f5e'],biz:['💼 商業應用者','#0ea5e9']};
 const ORDER=['img','snd','txt','act','soc','sys','cre','biz'];
-let donut,radar;
+let donut,radar,TOKEN=null;
 
-async function load(){
-  document.getElementById('err').textContent='';
-  try{
-    const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    render(await res.json());
-  }catch(e){document.getElementById('err').textContent='⚠ 載入失敗：'+e.message+'（請先在 Supabase 跑 memory_scale_collector.sql）';}
+/* ===== 登入 / 權限 ===== */
+function H(){return {apikey:SUPA_ANON,Authorization:'Bearer '+(TOKEN||SUPA_ANON),'Content-Type':'application/json'};}
+function gmsg(t){document.getElementById('gMsg').textContent=t||'';}
+async function isAdmin(){
+  try{const r=await fetch(SUPA_URL+'/rest/v1/rpc/is_admin',{method:'POST',headers:H(),body:'{}'});if(!r.ok)return false;return (await r.json())===true;}catch(e){return false;}
 }
+function openDash(){document.getElementById('gate').style.display='none';buildFilter();applyFilter();load();}
+async function adminLogin(btn){
+  const email=(document.getElementById('gEmail').value||'').trim();
+  const pw=document.getElementById('gPw').value||'';
+  if(!email||!pw){gmsg('請輸入帳號密碼');return;}
+  const t=btn.textContent;btn.disabled=true;btn.textContent='登入中…';gmsg('');
+  try{
+    const res=await fetch(SUPA_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SUPA_ANON,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+    const j=await res.json();
+    if(!res.ok||!j.access_token)throw new Error(j.error_description||j.msg||'登入失敗');
+    TOKEN=j.access_token;
+    if(!await isAdmin()){TOKEN=null;throw new Error('此帳號不是管理員，無權限進入。');}
+    sessionStorage.setItem('ml_admin_token',TOKEN);
+    openDash();
+  }catch(e){gmsg('⚠ '+e.message);btn.disabled=false;btn.textContent=t;}
+}
+function logout(){TOKEN=null;sessionStorage.removeItem('ml_admin_token');location.reload();}
+
 function lbl(k){return (ARCH[k]||[k])[0];}
 function col(k){return (ARCH[k]||['',''])[1]||'#888';}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function fmt(iso){const d=new Date(iso),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+const pc=x=>Math.round((x||0)*100);
 
+async function load(){
+  document.getElementById('err').textContent='';
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:H(),body:'{}'});
+    if(res.status===401||res.status===403)throw new Error('權限不足或登入過期，請重新登入。');
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    render(await res.json());
+  }catch(e){document.getElementById('err').textContent='⚠ 載入失敗：'+e.message;}
+}
 function render(s){
   document.getElementById('kTotal').textContent=s.total??0;
   document.getElementById('k7d').textContent=s.last_7d??0;
   const by=s.by_top1||{};const counts=ORDER.map(k=>by[k]||0);const total=counts.reduce((a,b)=>a+b,0)||1;
-
   if(donut)donut.destroy();
   donut=new Chart(document.getElementById('donut'),{type:'doughnut',
     data:{labels:ORDER.map(lbl),datasets:[{data:counts,backgroundColor:ORDER.map(col),borderWidth:0}]},
     options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},cutout:'58%'}});
-
   const ai=s.avg_input||{v:0,a:0,t:0,act:0};
   if(radar)radar.destroy();
   radar=new Chart(document.getElementById('radar'),{type:'radar',
     data:{labels:['視覺','聽覺','文字','動作'],datasets:[{label:'平均',data:[ai.v*100,ai.a*100,ai.t*100,ai.act*100],borderColor:'#14b8a6',backgroundColor:'#14b8a625',borderWidth:2}]},
     options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:12}}}}}});
-
   const max=Math.max(...counts)||1;
   document.getElementById('archBars').innerHTML=ORDER.slice().sort((a,b)=>(by[b]||0)-(by[a]||0)).map(k=>{
     const v=Math.round((by[k]||0)/total*100);
     return `<div class="barrow"><div class="barlab"><span>${lbl(k)}</span><span style="color:${col(k)};font-weight:700">${v}% · ${by[k]||0}</span></div><div class="bartrack"><div style="width:${v}%;background:${col(k)}"></div></div></div>`;
   }).join('');
-
   const cb=s.combos||[];
   document.getElementById('combos').innerHTML=cb.length?cb.map(c=>{
-    const parts=c.combo.split(' + ');const nm=parts.map(p=>lbl(p.trim())).join(' + ');
+    const nm=c.combo.split(' + ').map(p=>lbl(p.trim())).join(' + ');
     return `<div class="barlab" style="padding:4px 0;border-bottom:1px solid var(--line)"><span>${esc(nm)}</span><span class="muted">${c.count}</span></div>`;
   }).join(''):'<p class="muted" style="font-size:13px">尚無資料</p>';
-
   const tg=s.by_target||[];const tmax=tg.length?tg[0].count:1;
   document.getElementById('targets').innerHTML=tg.length?tg.map(t=>{
     const w=Math.round(t.count/tmax*100);
     return `<div class="barrow"><div class="barlab"><span>${esc(t.target)}</span><span class="muted">${t.count}</span></div><div class="bartrack"><div style="width:${w}%;background:var(--accent)"></div></div></div>`;
   }).join(''):'<p class="muted" style="font-size:13px">還沒有人填「在學什麼」。</p>';
-
   const rec=s.recent||[];
   document.getElementById('recent').innerHTML=rec.length?rec.map(r=>
     `<tr><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td><td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`
   ).join(''):'<tr><td colspan="4" class="muted">尚無資料</td></tr>';
 }
+
 /* ④ 機構分流 + CSV 匯出 */
-const pc=x=>Math.round((x||0)*100);
+function buildFilter(){const sel=document.getElementById('fTop1');if(sel.options.length>1)return;ORDER.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=lbl(k);sel.appendChild(o);});}
 async function fetchRows(top1){
-  const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_rows',{method:'POST',
-    headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},
-    body:JSON.stringify({p_top1:top1||null,p_limit:5000})});
-  if(!res.ok)throw new Error('HTTP '+res.status+'（請先跑 memory_scale_export.sql）');
+  const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_rows',{method:'POST',headers:H(),body:JSON.stringify({p_top1:top1||null,p_limit:5000})});
+  if(res.status===401||res.status===403)throw new Error('權限不足或登入過期');
+  if(!res.ok)throw new Error('HTTP '+res.status+'（請先跑 admin_lockdown.sql）');
   return await res.json();
 }
 async function applyFilter(){
@@ -167,9 +204,12 @@ async function exportCSV(btn){
     btn.disabled=false;btn.textContent=t;
   }catch(e){btn.disabled=false;btn.textContent=t;document.getElementById('err').textContent='⚠ 匯出失敗：'+e.message;}
 }
-(function(){const sel=document.getElementById('fTop1');ORDER.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=lbl(k);sel.appendChild(o);});})();
-applyFilter();
-load();
+
+/* 初始化：若 session 有有效 token 且為管理員，直接進；否則顯示登入 */
+(function init(){
+  const saved=sessionStorage.getItem('ml_admin_token');
+  if(saved){TOKEN=saved;isAdmin().then(ok=>{if(ok)openDash();else{TOKEN=null;sessionStorage.removeItem('ml_admin_token');}});}
+})();
 </script>
 </body>
 </html>

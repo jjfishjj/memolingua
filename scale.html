@@ -322,7 +322,7 @@ async function submitResult(btn){
       body:JSON.stringify({top1,top2,scores:sc,in_v:+inp[0].toFixed(3),in_a:+inp[1].toFixed(3),in_t:+inp[2].toFixed(3),in_act:+inp[3].toFixed(3),learning_target:target||null,source:'github-pages'})});
     if(!res.ok)throw new Error('HTTP '+res.status);
     collectDone=true;let n='';
-    try{const s=await(await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();if(s&&s.total)n='　你是第 '+s.total+' 位！';}catch(e){}
+    try{const c=await(await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_public_count',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();if(typeof c==='number'&&c>0)n='　你是第 '+c+' 位！';}catch(e){}
     $('collectCard').innerHTML='<h2>✅ 感謝你的填寫！</h2><p class="muted">結果已匿名加入統計。'+n+'</p>';
   }catch(e){btn.disabled=false;btn.textContent='送出（匿名）';msg.textContent='⚠ 送出失敗：'+e.message;}
 }
