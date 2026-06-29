@@ -48,6 +48,23 @@
   <div class="card"><h2>大家在學什麼？ Top 20</h2><div id="targets"><p class="muted" style="font-size:13px">載入中…</p></div></div>
   <div class="card"><h2>最近填寫</h2><table><thead><tr><th>主導</th><th>次要</th><th>在學</th><th>時間</th></tr></thead><tbody id="recent"></tbody></table></div>
 
+  <!-- ④ 機構版：分流 + 匯出 -->
+  <div class="card">
+    <h2>🏫 機構分流 · 資料匯出</h2>
+    <p class="muted" style="font-size:12px;margin:-6px 0 12px">依記憶天份篩選逐筆資料，匯出 CSV 做學生分流／課程推薦。不含 email（個資不外流）。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="fTop1" style="flex:1;min-width:160px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;font-size:14px">
+        <option value="">全部天份</option>
+      </select>
+      <button class="reload" onclick="applyFilter()">套用篩選</button>
+      <button class="reload" style="background:var(--accent)" onclick="exportCSV(this)">⬇ 匯出 CSV</button>
+    </div>
+    <p class="muted" id="fCount" style="font-size:13px;margin-top:10px"></p>
+    <div style="overflow-x:auto;margin-top:6px">
+      <table><thead><tr><th>時間</th><th>主導</th><th>次要</th><th>視/聽/文/動</th><th>在學</th></tr></thead><tbody id="rowsBody"></tbody></table>
+    </div>
+  </div>
+
   <p id="err" class="err"></p>
 </div>
 
@@ -110,6 +127,48 @@ function render(s){
     `<tr><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td><td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`
   ).join(''):'<tr><td colspan="4" class="muted">尚無資料</td></tr>';
 }
+/* ④ 機構分流 + CSV 匯出 */
+const pc=x=>Math.round((x||0)*100);
+async function fetchRows(top1){
+  const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_rows',{method:'POST',
+    headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},
+    body:JSON.stringify({p_top1:top1||null,p_limit:5000})});
+  if(!res.ok)throw new Error('HTTP '+res.status+'（請先跑 memory_scale_export.sql）');
+  return await res.json();
+}
+async function applyFilter(){
+  document.getElementById('err').textContent='';
+  const top1=document.getElementById('fTop1').value;
+  try{
+    const rows=await fetchRows(top1);
+    let note='符合 '+rows.length+' 筆'+(top1?'　·　'+lbl(top1):'');
+    if(rows.length>50)note+='（預覽前 50 筆，匯出含全部）';
+    document.getElementById('fCount').textContent=note;
+    document.getElementById('rowsBody').innerHTML=rows.slice(0,50).map(r=>
+      `<tr><td class="muted">${fmt(r.created_at)}</td><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td><td class="muted">${pc(r.in_v)}/${pc(r.in_a)}/${pc(r.in_t)}/${pc(r.in_act)}</td><td>${esc(r.learning_target||'—')}</td></tr>`
+    ).join('')||'<tr><td colspan="5" class="muted">無資料</td></tr>';
+  }catch(e){document.getElementById('err').textContent='⚠ 篩選失敗：'+e.message;}
+}
+async function exportCSV(btn){
+  document.getElementById('err').textContent='';
+  const top1=document.getElementById('fTop1').value;const t=btn.textContent;btn.disabled=true;btn.textContent='匯出中…';
+  try{
+    const rows=await fetchRows(top1);
+    const head=['時間','主導天份','次要天份','視覺%','聽覺%','文字%','動作%','在學','來源'];
+    const q=v=>{v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+    const lines=[head.join(',')];
+    rows.forEach(function(r){
+      lines.push([new Date(r.created_at).toISOString(),(ARCH[r.top1]||[r.top1])[0],r.top2?(ARCH[r.top2]||[r.top2])[0]:'',pc(r.in_v),pc(r.in_a),pc(r.in_t),pc(r.in_act),r.learning_target||'',r.source||''].map(q).join(','));
+    });
+    const csv='﻿'+lines.join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='memory_scale_'+(top1||'all')+'_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    btn.disabled=false;btn.textContent=t;
+  }catch(e){btn.disabled=false;btn.textContent=t;document.getElementById('err').textContent='⚠ 匯出失敗：'+e.message;}
+}
+(function(){const sel=document.getElementById('fTop1');ORDER.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=lbl(k);sel.appendChild(o);});})();
+applyFilter();
 load();
 </script>
 </body>

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MemoLingua · 記憶天份量表 🧠</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
 <style>
   :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
   *{box-sizing:border-box}
@@ -80,6 +81,7 @@
 
   <!-- report -->
   <div class="screen" id="s2">
+   <div id="reportDoc">
     <div class="hero" id="hero">
       <div class="em" id="hEmo">🧠</div>
       <div style="opacity:.8;font-size:12px;margin-top:6px">你的記憶天份</div>
@@ -112,6 +114,9 @@
       <h2>📅 你的 30 天記憶養成計畫</h2>
       <div id="rPlan"></div>
     </div>
+   </div><!-- /reportDoc -->
+
+    <button class="btn" onclick="downloadPDF(this)">📄 下載完整報告 PDF</button>
 
     <!-- collect -->
     <div class="card" id="collectCard">
@@ -284,6 +289,20 @@ function renderReport(sc,top1,top2){
   $('rScene').textContent=A.scene;
   $('rStrat').innerHTML=A.strat.concat(B.strat).filter((v,i,a)=>a.indexOf(v)===i).map(s=>`<span class="chip">${s}</span>`).join('');
   $('rPlan').innerHTML=A.plan.map(p=>`<div class="phase"><div class="day">${p[0]}</div><div class="txt">${p[1]}</div></div>`).join('');
+}
+
+/* ===== 下載 PDF 個人報告 ===== */
+function downloadPDF(btn){
+  if(typeof html2pdf==='undefined'){alert('PDF 元件載入中，請稍候再試');return;}
+  const el=$('reportDoc');
+  const nm=(window._result&&ARCH[window._result.top1]?ARCH[window._result.top1].name:'記憶天份')+'_學習報告';
+  const t=btn.textContent;btn.disabled=true;btn.textContent='產生 PDF 中…';
+  const opt={margin:[8,8,10,8],filename:nm+'.pdf',image:{type:'jpeg',quality:.95},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy','avoid-all']}};
+  html2pdf().set(opt).from(el).save()
+    .then(()=>{btn.disabled=false;btn.textContent=t;})
+    .catch(e=>{btn.disabled=false;btn.textContent=t;alert('PDF 產生失敗：'+(e&&e.message||e));});
 }
 
 /* ===== 匿名寫入 Supabase ===== */
