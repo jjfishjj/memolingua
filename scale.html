@@ -117,6 +117,8 @@
    </div><!-- /reportDoc -->
 
     <button class="btn" onclick="downloadPDF(this)">📄 下載完整報告 PDF</button>
+    <a id="appLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">
+      <div class="btn accent">🚀 到 App 用你的天份開始學 →</div></a>
 
     <!-- collect -->
     <div class="card" id="collectCard">
@@ -207,6 +209,11 @@ const KEYS=['img','snd','txt','act','soc','sys','cre','biz'];
 // 各天份的「輸入偏好」剖面 [視覺,聽覺,文字,動作]
 const INPUT={img:[.9,.2,.4,.3],snd:[.2,.9,.3,.4],txt:[.4,.2,.9,.2],act:[.3,.4,.2,.9],
   soc:[.3,.7,.3,.7],sys:[.4,.2,.7,.3],cre:[.7,.3,.5,.4],biz:[.5,.5,.6,.7]};
+// 對照表：memolingua 8 型 → fluent-ai genius 型 + VARK（導流進 App 用）
+const GENIUS={img:['visionary','visual'],snd:['melodist','auditory'],txt:['architect','reading'],
+  act:['explorer','kinesthetic'],soc:['performer','auditory'],sys:['analyst','reading'],
+  cre:['narrator','auditory'],biz:['connector','reading']};
+const APP_URL='https://fluent-ai-mu.vercel.app';
 
 /* ===== 題目（每選項對應一種天份） ===== */
 const Q=[
@@ -289,6 +296,9 @@ function renderReport(sc,top1,top2){
   $('rScene').textContent=A.scene;
   $('rStrat').innerHTML=A.strat.concat(B.strat).filter((v,i,a)=>a.indexOf(v)===i).map(s=>`<span class="chip">${s}</span>`).join('');
   $('rPlan').innerHTML=A.plan.map(p=>`<div class="phase"><div class="day">${p[0]}</div><div class="txt">${p[1]}</div></div>`).join('');
+  // 導流進 App：帶對照後的 genius 型態 + VARK
+  const g=GENIUS[top1]||['explorer','kinesthetic'];
+  $('appLink').href=APP_URL+'/practice?genius='+g[0]+'&vark='+g[1]+'&from=scale';
 }
 
 /* ===== 下載 PDF 個人報告 ===== */
@@ -319,7 +329,7 @@ async function submitResult(btn){
   try{
     const res=await fetch(SUPA_URL+'/rest/v1/memory_scale_submissions',{method:'POST',
       headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
-      body:JSON.stringify({top1,top2,scores:sc,in_v:+inp[0].toFixed(3),in_a:+inp[1].toFixed(3),in_t:+inp[2].toFixed(3),in_act:+inp[3].toFixed(3),learning_target:target||null,source:'github-pages'})});
+      body:JSON.stringify({top1,top2,scores:sc,in_v:+inp[0].toFixed(3),in_a:+inp[1].toFixed(3),in_t:+inp[2].toFixed(3),in_act:+inp[3].toFixed(3),learning_target:target||null,genius:(GENIUS[top1]||[])[0]||null,source:'github-pages'})});
     if(!res.ok)throw new Error('HTTP '+res.status);
     collectDone=true;let n='';
     try{const c=await(await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_public_count',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();if(typeof c==='number'&&c>0)n='　你是第 '+c+' 位！';}catch(e){}
