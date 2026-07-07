@@ -41,6 +41,8 @@
   .phase .day{flex-shrink:0;width:64px;font-weight:800;color:var(--accent);font-size:13px}
   .phase .txt{font-size:13px;color:#374151}
   input.tin{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;outline:none}
+  .schip{padding:7px 13px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:13px;cursor:pointer;transition:.15s}
+  .schip.on{border-color:var(--accent);background:#e6faf6;font-weight:700;color:var(--primary)}
   .tag{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.22);margin-top:8px}
 </style>
 </head>
@@ -59,7 +61,7 @@
       <p class="muted" style="line-height:1.9">
         🏅 你的記憶天份名稱（可能是組合型）<br>
         📊 你的學習指標分數（視覺／聽覺／文字／動作）<br>
-        🗺️ 你的語言學習路線<br>
+        🗺️ 你的學習路線（英文會話／多益／英檢／數學／物理）<br>
         🔁 你的複習節奏 + 錯誤修正方法<br>
         🎯 你的最佳應用場景<br>
         📅 你的 30 天記憶養成計畫
@@ -102,6 +104,10 @@
 
     <div class="card">
       <h2>🗺️ 你的個人化學習方案</h2>
+      <div style="margin:2px 0 12px">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">🎯 我要學的是：</div>
+        <div id="subjChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
       <div class="sec"><b>🎁 你的記憶天份</b><p id="rGift"></p></div>
       <div class="sec"><b>🗺️ 語言學習路線</b><p id="rRoute"></p></div>
       <div class="sec"><b>🔁 複習節奏</b><p id="rRhythm"></p></div>
@@ -215,6 +221,61 @@ const GENIUS={img:['visionary','visual'],snd:['melodist','auditory'],txt:['archi
   cre:['narrator','auditory'],biz:['connector','reading']};
 const APP_URL='https://fluent-ai-mu.vercel.app';
 
+/* ===== 多科目訓練：科目 × 記憶天份 組合 ===== */
+// 每個天份的「核心方法」短語，會代入各科路線與 30 天計畫的 {M}
+const ARCH_METHOD={
+ img:'圖解／心智圖／圖像卡', snd:'朗讀口述＋錄音回聽', txt:'筆記摘要＋錯題本', act:'實作演練＋情境任務',
+ soc:'講給別人聽／小組討論', sys:'間隔複習＋每日打卡', cre:'比喻聯想＋故事化', biz:'考題實戰＋目標倒推'};
+const SUBJ={
+ english:{label:'英文會話',emoji:'🗣️',
+  scene:'日常對話、旅遊、口說聚會、線上外師',
+  route:'進入對話場景 → 拆常用句型 → {M} → 間隔複習 → 真實輸出',
+  phases:[['Day 1–10','每天 1 個生活情境對話（點餐／問路／自我介紹），把常用句抄成句庫，用{M}記牢'],
+   ['Day 11–20','句庫進階：換人稱、換時態改寫，每天開口 10 分鐘，錯句用{M}修正'],
+   ['Day 21–30','真實輸出：語言交換或 AI 對話每天 15 分鐘，複盤錄音，挑戰一次完整 10 分鐘對話']]},
+ toeic:{label:'多益 TOEIC',emoji:'📝',
+  scene:'職場英文、商務書信、會議聽力、金色證書',
+  route:'摸底模考 → 弱項拆解 → {M} → 題型專練 → 全真模考循環',
+  phases:[['Day 1–7','做一回完整模考摸底，錯題按 Part 1–7 分類，找出兩個最弱 Part'],
+   ['Day 8–21','弱項 Part 每天專練 40 分鐘，商務高頻 600 字用{M}累積'],
+   ['Day 22–30','每 3 天一回全真模考＋複盤，考前用{M}掃一遍錯題，鎖定目標分數']]},
+ cert:{label:'英檢／雅思／托福',emoji:'🏅',
+  scene:'留學申請、求職門檻、聽說讀寫全項檢定',
+  route:'官方題型導覽 → 四技能分練 → {M} → 寫作口說批改 → 模考驗收',
+  phases:[['Day 1–10','熟悉題型與評分標準，聽力閱讀每天各 30 分鐘，生字用{M}建庫'],
+   ['Day 11–20','寫作每 2 天一篇、口說每天 10 分鐘錄音，弱點用{M}修正'],
+   ['Day 21–30','兩回全真模考，針對最低分技能加練，考前一週用{M}總複習']]},
+ math:{label:'數學',emoji:'➗',
+  scene:'會考／學測、微積分、統計、程式數學基礎',
+  route:'觀念理解 → 例題拆解 → {M} → 錯題重做 → 混合題檢核',
+  phases:[['Day 1–10','每天 1 個核心觀念：先看懂定義與一個典型例題，用{M}把觀念記牢'],
+   ['Day 11–20','每天 5 題漸進練習（基礎 3＋進階 2），錯題當天用{M}重做並歸因'],
+   ['Day 21–30','跨單元混合刷題＋限時測驗，錯題本二刷，弱點單元回頭補觀念']]},
+ physics:{label:'物理',emoji:'🧲',
+  scene:'力學／電磁直覺、學測分科、工程物理基礎',
+  route:'現象直覺 → 公式推導 → {M} → 題型套用 → 跨章節整合',
+  phases:[['Day 1–10','每天 1 個物理情境：先想像現象再看公式，用{M}連結「現象↔公式」'],
+   ['Day 11–20','每天 4 題：先畫圖列已知、再選定律解題，錯題用{M}重建推導'],
+   ['Day 21–30','跨章節綜合題＋一份歷屆卷，整理「題型→定律」對照表，用{M}複習']]}};
+let curSubj='english';
+function selectSubject(key){
+  curSubj=key;
+  const r=window._result; if(!r)return;
+  const S=SUBJ[key], M=ARCH_METHOD[r.top1]||'';
+  document.querySelectorAll('#subjChips .schip').forEach(b=>b.classList.toggle('on',b.dataset.k===key));
+  $('rRoute').textContent=S.route.replace(/\{M\}/g,M);
+  $('rScene').textContent=S.scene;
+  $('rPlan').innerHTML=S.phases.map(p=>`<div class="phase"><div class="day">${p[0]}</div><div class="txt">${p[1].replace(/\{M\}/g,M)}</div></div>`).join('');
+  // 同步到「在學什麼」欄位（使用者已自行輸入其他文字則不覆蓋）
+  const inp=$('learnTarget');
+  const labels=Object.values(SUBJ).map(s=>s.label);
+  if(!inp.value||labels.includes(inp.value))inp.value=S.label;
+}
+function buildSubjChips(){
+  $('subjChips').innerHTML=Object.entries(SUBJ).map(([k,s])=>
+    `<button class="schip${k===curSubj?' on':''}" data-k="${k}" onclick="selectSubject('${k}')">${s.emoji} ${s.label}</button>`).join('');
+}
+
 /* ===== 題目（每選項對應一種天份） ===== */
 const Q=[
  {q:'記一個新單字，你最自然的方式是？',o:[['🖼️','把它畫成圖、配顏色或位置','img'],['🔊','大聲唸、聽發音反覆模仿','snd'],['📝','寫下定義、例句並分類整理','txt'],['🎬','馬上用它造句、在情境裡用','act']]},
@@ -290,12 +351,12 @@ function renderReport(sc,top1,top2){
   // sections
   const combo=top1!==top2?`你是「${A.name} + ${B.name}」型學習者。`:`你是「${A.name}」型學習者。`;
   $('rGift').textContent=combo+' '+A.gift;
-  $('rRoute').textContent=A.route;
   $('rRhythm').textContent=A.rhythm;
   $('rFix').textContent=A.fix;
-  $('rScene').textContent=A.scene;
   $('rStrat').innerHTML=A.strat.concat(B.strat).filter((v,i,a)=>a.indexOf(v)===i).map(s=>`<span class="chip">${s}</span>`).join('');
-  $('rPlan').innerHTML=A.plan.map(p=>`<div class="phase"><div class="day">${p[0]}</div><div class="txt">${p[1]}</div></div>`).join('');
+  // 路線／場景／30天計畫 = 科目 × 天份 動態組合
+  buildSubjChips();
+  selectSubject(curSubj);
   // 導流進 App：帶對照後的 genius 型態 + VARK
   const g=GENIUS[top1]||['explorer','kinesthetic'];
   $('appLink').href=APP_URL+'/practice?genius='+g[0]+'&vark='+g[1]+'&from=scale';
