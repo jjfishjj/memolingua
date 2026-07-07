@@ -96,7 +96,13 @@ let donut,radar,TOKEN=null;
 function H(){return {apikey:SUPA_ANON,Authorization:'Bearer '+(TOKEN||SUPA_ANON),'Content-Type':'application/json'};}
 function gmsg(t){document.getElementById('gMsg').textContent=t||'';}
 async function isAdmin(){
-  try{const r=await fetch(SUPA_URL+'/rest/v1/rpc/is_admin',{method:'POST',headers:H(),body:'{}'});if(!r.ok)return false;return (await r.json())===true;}catch(e){return false;}
+  // 回傳 true / false / 'nosetup'（is_admin RPC 不存在 = admin_lockdown.sql 還沒跑）
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/rpc/is_admin',{method:'POST',headers:H(),body:'{}'});
+    if(r.status===404)return 'nosetup';
+    if(!r.ok)return false;
+    return (await r.json())===true;
+  }catch(e){return false;}
 }
 function openDash(){document.getElementById('gate').style.display='none';buildFilter();applyFilter();load();}
 async function adminLogin(btn){
@@ -109,7 +115,9 @@ async function adminLogin(btn){
     const j=await res.json();
     if(!res.ok||!j.access_token)throw new Error(j.error_description||j.msg||'登入失敗');
     TOKEN=j.access_token;
-    if(!await isAdmin()){TOKEN=null;throw new Error('此帳號不是管理員，無權限進入。');}
+    const ok=await isAdmin();
+    if(ok==='nosetup'){TOKEN=null;throw new Error('後台尚未初始化：請先在 Supabase SQL Editor 執行 admin_lockdown.sql，並把你的帳號加入 admins。');}
+    if(ok!==true){TOKEN=null;throw new Error('此帳號不是管理員，無權限進入。');}
     sessionStorage.setItem('ml_admin_token',TOKEN);
     openDash();
   }catch(e){gmsg('⚠ '+e.message);btn.disabled=false;btn.textContent=t;}
@@ -208,7 +216,7 @@ async function exportCSV(btn){
 /* 初始化：若 session 有有效 token 且為管理員，直接進；否則顯示登入 */
 (function init(){
   const saved=sessionStorage.getItem('ml_admin_token');
-  if(saved){TOKEN=saved;isAdmin().then(ok=>{if(ok)openDash();else{TOKEN=null;sessionStorage.removeItem('ml_admin_token');}});}
+  if(saved){TOKEN=saved;isAdmin().then(ok=>{if(ok===true)openDash();else{TOKEN=null;sessionStorage.removeItem('ml_admin_token');}});}
 })();
 </script>
 </body>

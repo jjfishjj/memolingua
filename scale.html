@@ -327,9 +327,15 @@ async function submitResult(btn){
   const totalSc=KEYS.reduce((s,k)=>s+sc[k],0)||1;
   const inp=[0,0,0,0];KEYS.forEach(k=>{const w=sc[k]/totalSc;INPUT[k].forEach((v,j)=>inp[j]+=v*w);});
   try{
-    const res=await fetch(SUPA_URL+'/rest/v1/memory_scale_submissions',{method:'POST',
+    const payload={top1,top2,scores:sc,in_v:+inp[0].toFixed(3),in_a:+inp[1].toFixed(3),in_t:+inp[2].toFixed(3),in_act:+inp[3].toFixed(3),learning_target:target||null,genius:(GENIUS[top1]||[])[0]||null,source:'github-pages'};
+    const post=body=>fetch(SUPA_URL+'/rest/v1/memory_scale_submissions',{method:'POST',
       headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
-      body:JSON.stringify({top1,top2,scores:sc,in_v:+inp[0].toFixed(3),in_a:+inp[1].toFixed(3),in_t:+inp[2].toFixed(3),in_act:+inp[3].toFixed(3),learning_target:target||null,genius:(GENIUS[top1]||[])[0]||null,source:'github-pages'})});
+      body:JSON.stringify(body)});
+    let res=await post(payload);
+    if(res.status===400){ // DB 尚未加 genius 欄位時退回相容格式，漏斗不能斷
+      const {genius,...legacy}=payload;
+      res=await post(legacy);
+    }
     if(!res.ok)throw new Error('HTTP '+res.status);
     collectDone=true;let n='';
     try{const c=await(await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_public_count',{method:'POST',headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'})).json();if(typeof c==='number'&&c>0)n='　你是第 '+c+' 位！';}catch(e){}
