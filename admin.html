@@ -86,8 +86,14 @@ let donut;
 async function load(){
   document.getElementById('err').textContent='';
   try{
+    // 後台上鎖後改用管理員 token（由 admin-scale.html 登入時存入）
+    const tok=sessionStorage.getItem('ml_admin_token')||SUPA_ANON;
     const res=await fetch(SUPA_URL+'/rest/v1/rpc/public_vark_stats',{method:'POST',
-      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json'},body:'{}'});
+      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:'{}'});
+    if(res.status===401||res.status===403){
+      document.getElementById('err').innerHTML='🔒 此頁已上鎖，請先到 <a href="admin-scale.html">量表後台</a> 以管理員登入，再回到本頁。';
+      return;
+    }
     if(!res.ok)throw new Error('HTTP '+res.status);
     const s=await res.json();
     render(s);
