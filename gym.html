@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MemoLingua · 學習訓練場 Learning Gym 🏋️</title>
+<meta name="description" content="22 張記憶訓練卡：AI 對話、卡牌訓練、小遊戲、相似聲音訓練、相似事物訓練——每種能力配對最適合的訓練形式。">
+<style>
+  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .wrap{max-width:640px;margin:0 auto;background:#fff;min-height:100vh;padding:0 20px 60px}
+  h1{font-size:23px;margin:0}
+  .muted{color:var(--sub);font-size:13px}
+  .modeRow{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;background:#fff;padding:12px 0;z-index:10;border-bottom:1px solid var(--line)}
+  .mchip{padding:6px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:12px;cursor:pointer;transition:.15s}
+  .mchip.on{color:#fff;border-color:transparent}
+  .card{border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}
+  .chead{display:flex;align-items:center;gap:10px}
+  .chead .ic{font-size:26px}
+  .chead b{font-size:15px}
+  .modebadge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:99px;color:#fff;margin-left:auto;white-space:nowrap}
+  .goal{font-size:13.5px;color:#374151;margin:8px 0 6px}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
+  .tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#eef6f4;color:var(--primary)}
+  .meta{font-size:12px;color:var(--sub)}
+  details{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+  summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--accent)}
+  .design{font-size:13px;color:#374151;margin-top:8px}
+  .design .lab{font-weight:700;font-size:12px;color:var(--sub);display:block;margin-top:8px}
+  .design p{margin:2px 0 0}
+  .bubble{background:#f4faf9;border-radius:10px;padding:8px 11px;margin-top:5px;font-size:12.5px}
+  .bubble.me{background:#f3f4f6}
+  .cta{display:block;text-align:center;padding:14px;border-radius:14px;background:var(--primary);color:#fff;font-weight:700;font-size:15px;text-decoration:none;margin-top:16px}
+  .cta.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:500}
+  .legend{font-size:12px;color:var(--sub);margin-top:6px}
+  .legend b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="text-align:center;padding:32px 0 8px">
+    <div style="font-size:44px">🏋️</div>
+    <h1>學習訓練場 Learning Gym</h1>
+    <p class="muted">22 張記憶訓練卡。不是每種能力都適合打字聊天——<br>跟讀靠聲音、宮殿靠空間、拆解靠圖卡，我們照能力本質配訓練形式。</p>
+  </div>
+
+  <div class="legend">
+    🤖 <b>AI 對話</b>：機器人主動引導的問答／角色扮演
+    🎴 <b>卡牌訓練</b>：實體/線上卡片拼接與配對
+    🎮 <b>小遊戲</b>：計時、空間、動作類挑戰
+    🎵 <b>相似聲音訓練</b>：辨音＋跟讀，練聽覺神經
+    🔍 <b>相似事物訓練</b>：易混淆概念的差異拆解
+    🛠️ <b>結構工具</b>：自己動手的整理型任務
+  </div>
+
+  <div class="modeRow" id="modeRow"></div>
+  <div id="cards"></div>
+
+  <a class="cta" href="scale.html">📝 先測你的記憶天賦，訓練會更準 →</a>
+  <a class="cta ghost" href="training.html">📖 回八大天賦訓練圖鑑</a>
+  <a class="cta ghost" href="index.html">← 回 MemoLingua 首頁</a>
+</div>
+
+<script>
+const MODES={
+ ai:{label:'AI 對話',emoji:'🤖',color:'#0ea5e9'},
+ card:{label:'卡牌訓練',emoji:'🎴',color:'#8b5cf6'},
+ game:{label:'小遊戲',emoji:'🎮',color:'#f59e0b'},
+ sound:{label:'相似聲音訓練',emoji:'🎵',color:'#ec4899'},
+ similar:{label:'相似事物訓練',emoji:'🔍',color:'#10b981'},
+ tool:{label:'結構工具',emoji:'🛠️',color:'#64748b'}};
+
+const CARDS=[
+{n:'情境鉤子卡',ic:'📍',mode:'ai',tags:['情境編碼+3','主動回想+2','即時輸出+1'],dur:'7 分鐘',out:'產生一段情境對話 + 一個可回想場景',
+ goal:'把詞彙或概念放進一個真實場景，再關掉提示回想。',
+ design:{lab:'🤖 機器人角色：情境導演',
+  flow:['AI 先給一個生活情境（點餐、面試、問路），把目標詞彙自然嵌入對話台詞中，只出現一次，不特別強調。',
+   '情境結束，AI 說「提示收起來了」，換一個新情境反問使用者：剛剛那個詞是什麼意思？現在換句話說一次。',
+   '答對就升級情境難度（換場景／換時態）；答錯 AI 給一句情境化的提示，不直接公布答案。'],
+  sample:[['ai','你走進一間安靜的咖啡廳，服務生問你：「你今天想要 something soothing 的飲品嗎？」（先別查字典，讓這句話在腦中留 3 秒⋯⋯好，提示收起來了。）'],
+   ['ai','現在換個場景：你在跟朋友描述昨晚的按摩體驗，你會怎麼用 soothing 這個字？']]}},
+
+{n:'資料轉表格訓練',ic:'📊',mode:'tool',tags:['結構化+3','差異辨析+1','空間視覺+1'],dur:'8 分鐘',out:'輸出一張清楚表格 + 一段學習摘要',
+ goal:'把雜亂資料整理成欄位、分類、規則與摘要。',
+ design:{lab:'🛠️ 結構化任務（AI 出題、你動手整理）',
+  flow:['系統給一段刻意寫亂的資料（例如打散的動詞變化、雜亂的歷史事件年表）。',
+   '限時整理成表格：先自己定欄位名稱，再把資料分類填入。',
+   '完成後 AI 只做「結構檢查」——欄位分類是否一致、有沒有漏項——不重寫你的表格，逼你自己修。',
+   '最後寫 3 句學習摘要，作為之後複習時的索引卡。'],
+  note:'這張本質是「整理」而非「對話」，AI 的角色退到出題與檢查，訓練重點是自己動手建立結構，而不是被動聽 AI 講解。'}},
+
+{n:'聲音跟讀卡',ic:'🎧',mode:'sound',tags:['音韻迴路+3','主動回想+2','即時輸出+1'],dur:'6 分鐘',out:'完成三輪：純聽 → 跟讀 → 遮稿複述',
+ goal:'用節奏、重音和遮稿複述建立音韻記憶。',
+ design:{lab:'🎵 相似聲音訓練：辨音三輪制',
+  flow:['第一輪【辨音】：系統播放一對容易混淆的發音（led／lead、ship／sheep、73／30），你要選出剛剛聽到的是哪一個。',
+   '第二輪【跟讀】：播放正確發音，你跟著念，錄下自己的聲音，AI 標出重音落點跟原音是否對齊。',
+   '第三輪【遮稿複述】：文字稿蓋起來，只聽聲音回想意思並唸出完整句子。'],
+  note:'不走純文字聊天，因為「聽覺辨識＋跟讀」的訓練效果來自真實聲音刺激，文字對話模擬不出重音、語調差異——這正是要交給音檔和錄音回放的部分。'}},
+
+{n:'情感故事卡',ic:'📖',mode:'ai',tags:['故事綁定+3','情境編碼+1','即時輸出+2'],dur:'8 分鐘',out:'產生一段故事 + 口說/文字複述',
+ goal:'把新概念放進有人物、情緒和反應的故事。',
+ design:{lab:'🤖 機器人角色：說書人',
+  flow:['AI 把要背的概念/單字編進一個有情緒轉折的小故事（例如用一個「差點錯過班機」的故事包住 5 個旅遊單字）。',
+   '故事說完，AI 問：「主角當時的心情是？他做了什麼？」引導你用自己的話複述故事，順便把單字用出來。',
+   '複述完，AI 換角色再問一次同一批單字，但抽掉故事情境，測試是否真的記住而非只記得故事。'],
+  sample:[['ai','小明在登機口前狂奔，因為他把護照忘在計程車上——他整個人 panicked（驚慌失措）。你猜接下來發生什麼事？用 panicked 這個字接著說故事看看。']]}},
+
+{n:'概念織網卡',ic:'🕸️',mode:'card',tags:['跨域連結+3','結構化+1','主動回想+1'],dur:'7 分鐘',out:'建立一張概念地圖 + 解釋每條連結',
+ goal:'用類比、隱喻和跨域連結建立知識網。',
+ design:{lab:'🎴 卡牌玩法：連連看知識網',
+  flow:['抽 5 張隨機概念卡（可跨學科，例如「供需曲線」「食物鏈」「人際邊界」）。',
+   '把卡片攤開，用線把任兩張連起來，並在連線上寫一句類比或隱喻，說明它們哪裡像。',
+   '全部連完，AI 只檢查「這條類比邏輯站不站得住」，不是給標準答案——連得越多、越怪，記憶網越密。'],
+  note:'知識網要有「跨域」的意外感，玩實體/虛擬卡片抽牌的隨機性，比 AI 主動安排連結更容易產生真正意外的連結。'}},
+
+{n:'費曼原理卡',ic:'🧑‍🏫',mode:'ai',tags:['原理解釋+3','錯誤修正+1','主動回想+2'],dur:'9 分鐘',out:'完成一段可教人的原理解釋',
+ goal:'先問為什麼，再用自己的話教給 AI。',
+ design:{lab:'🤖 機器人角色：愛問為什麼的學生',
+  flow:['你先用自己的話跟 AI 解釋一個原理（光合作用、複利、關係子句文法）。',
+   'AI 扮演一個什麼都不懂的學生，連環追問：「為什麼？」「可以舉個例子嗎？」「那如果反過來呢？」',
+   '講到卡住的地方＝知識漏洞，AI 記下來，換你去查資料補洞，回來重講一次，直到能把 AI 教到懂。'],
+  sample:[['me','複利就是利息也會生利息，越滾越大。'],['ai','為什麼利息會生利息？如果我今天存 100 元、利率 10%，明年跟後年分別會變多少？你能算給我看嗎？']]}},
+
+{n:'即時輸出卡',ic:'⚡',mode:'ai',tags:['即時輸出+3','音韻迴路+1','錯誤修正+1'],dur:'5 分鐘',out:'完成 3 回合即興輸出 + 一個修正版',
+ goal:'不準備，直接說、演、示範，讓壓力變成記憶鉤子。',
+ design:{lab:'🤖 機器人角色：即興教練（限時出題）',
+  flow:['AI 每 90 秒丟一個隨機任務：「用今天學的 3 個詞造一個投訴信開頭」「30 秒內解釋你剛背的公式給小學生聽」。',
+   '不給準備時間，講完立刻進下一題——目的是製造輕壓力，逼大腦即時檢索而非背稿。',
+   '3 回合結束，AI 挑出講得最卡的一句，跟你一起做一個「修正版」，作為這次訓練唯一要精修的內容。'],
+  sample:[['ai','時間到！用 refund（退款）這個字，30 秒內跟我抱怨一個你買到的爛商品——開始。']]}},
+
+{n:'記憶宮殿 3D 線上版',ic:'🏛️',mode:'game',tags:['空間視覺+3','主動回想+2','情境編碼+1'],dur:'8 分鐘',out:'完成 10 個位置的圖像放置與空間回想',
+ goal:'把公式、歷史或單字變成物件，放進熟悉空間再走一遍。',
+ design:{lab:'🎮 小遊戲：3D 空間放置與巡邏',
+  flow:['選一個熟悉的 3D 空間（自己的房間、教室、太空艙），要記的知識點逐一化為誇張物件放進空間裡的固定位置。',
+   '放置完畢，用滑鼠/觸控在空間裡「走一遍」，依序碰觸每個物件，觸碰時彈出對應知識點做即時回想。',
+   '計時挑戰模式：限時走完全部 10 個點位，錯漏的位置會標記成「待補洞」，下次先從那裡練起。'],
+  note:'空間記憶靠的是真的在 3D 場域中移動與定位，文字對話無法提供空間座標感——這是最不該被塞進聊天框的一種能力。'}},
+
+{n:'AI 圖像生成變形記',ic:'🎨',mode:'card',tags:['空間視覺+3','故事綁定+1','主動回想+1'],dur:'7 分鐘',out:'產生一張誇張圖像 prompt + 自訂變形規則',
+ goal:'把難背內容變成荒謬、高彩度、可修改的視覺錨點。',
+ design:{lab:'🎴 卡牌玩法：變形卡（AI 產圖 + 手動改造）',
+  flow:['AI 依你的難字生成一張「基礎荒謬圖」的描述（例如：monotonous → 一隻眼神死掉的猴子，用單指反覆敲同一個琴鍵）。',
+   '把這段描述做成一張卡片，卡背寫下你自己的 3 條「客製化變形規則」（換顏色／加道具／換場景），下次先靠這 3 條規則在腦中重建畫面，再翻卡對答案。',
+   '同一張卡可以無限次重新變形——變得越荒謬，你自己動手改得越多，記得越牢。'],
+  note:'AI 負責「產生第一版畫面」，但真正記憶固化的步驟是你自己動手改圖，所以設計成卡牌而不是持續對話。'}},
+
+{n:'螢光色階與符號筆記術',ic:'🖍️',mode:'tool',tags:['空間視覺+2','結構化+2','差異辨析+1'],dur:'6 分鐘',out:'輸出一套顏色規則 + 一張符號化筆記',
+ goal:'用 3 色原則、符號和箭頭把課文變成藏寶圖。',
+ design:{lab:'🛠️ 結構化任務：3 色 + 符號系統',
+  flow:['先定義 3 色原則（例：綠=定義／粉=常考／黃=因果），套用到一段課文上。',
+   '用幾何符號（三角/圓圈/箭頭）標出重點之間的關係，把課文改造成一張「藏寶圖」筆記。',
+   '複習時只看這張圖，不重讀課文——檢索速度是給自己的評分標準。'],
+  note:'這是動手畫記號的視覺化整理，AI 頂多給範例規則，真正訓練效果來自自己標記課文的過程。'}},
+
+{n:'Rap 節奏單字覆誦',ic:'🎤',mode:'sound',tags:['音韻迴路+3','即時輸出+1','主動回想+1'],dur:'5 分鐘',out:'完成節奏拆音 + 影子跟讀',
+ goal:'把長單字或考點拆成節拍、重音和洗腦副歌。',
+ design:{lab:'🎵 相似聲音訓練：節奏卡 + 節拍跟讀',
+  flow:['每張節奏卡把一個長單字拆成音節與重音記號（如 ac-COM-plish，重音在第二音節，配一個固定 BPM 節拍）。',
+   '配節拍器播放，你要在拍點上準確念出音節，錯拍或重音位置錯都算未過關。',
+   '過關卡片收進「洗腦副歌庫」，下次暖身時全部快速覆誦一輪。'],
+  note:'節奏訓練的核心是身體對拍點的感知，這是聽覺+身體協調的能力，用打字問答練不出節拍感——所以做成有真實節拍器的練習，而非文字往返。'}},
+
+{n:'Podcast 說書人任務',ic:'🎙️',mode:'ai',tags:['音韻迴路+2','原理解釋+2','即時輸出+1'],dur:'8 分鐘',out:'完成一段 60 秒說書稿 + 關鍵字檢核',
+ goal:'假裝廣播主持人，用 60 秒把知識講給聽眾聽。',
+ design:{lab:'🤖 機器人角色：聽眾＋錄音評審',
+  flow:['AI 出題：「用 60 秒把光合作用的步驟講給聽眾聽，就像你在主持廣播節目。」',
+   '你對著手機錄音（或直接打字模擬稿），AI 依「開場吸引力、關鍵字完整度、收尾金句」三維度評分。',
+   '關鍵字沒講到的地方，AI 標出來，換你重錄一次補齊，直到關鍵字全部覆蓋。'],
+  sample:[['ai','麥克風開了！60 秒，你要讓聽眾聽完就懂「光合作用」——葉綠體、光反應、暗反應這三個詞至少要出現一次。開始！']]}},
+
+{n:'諧音迷因與口訣創作家',ic:'😂',mode:'ai',tags:['音韻迴路+2','跨域連結+2','主動回想+1'],dur:'6 分鐘',out:'創作一組口訣 + 立即提取測驗',
+ goal:'把年份、單字、流程變成順口溜、冷笑話或迷因。',
+ design:{lab:'🤖 機器人角色：迷因共創夥伴',
+  flow:['AI 丟出要記的內容（如「維也納會議 1815 年」），跟你一起腦力激盪諧音口訣，AI 先提幾個爛哏拋磚引玉。',
+   '你選一個最好笑／最順口的版本定案，唸三遍確認順口。',
+   '結束前 AI 假裝失憶考你：「維也納會議是哪一年？」測試口訣能不能真的把年份釣出來。'],
+  sample:[['ai','1815⋯聽起來像「一把要舞」？還是你想到更好笑的？我們來湊一句「維也納會議，一把要舞」試試看順不順口。']]}},
+
+{n:'情境式 AI 劇本殺',ic:'🎭',mode:'ai',tags:['情境編碼+3','即時輸出+2','故事綁定+1'],dur:'9 分鐘',out:'完成 1 段角色扮演 + 5 個核心詞觸發劇情',
+ goal:'把單字、歷史或概念包裝成角色扮演任務。',
+ design:{lab:'🤖 機器人角色：劇情主持人（Game Master）',
+  flow:['AI 把 5 個核心詞包裝成一個角色扮演任務（時空偵探、跨國談判 PM），開場給第一段劇情。',
+   '你必須在對話中主動、正確地用出指定詞彙，才能觸發下一段劇情線索——講不出來劇情就卡住不動。',
+   '5 個詞全部觸發完，AI 收尾給一個劇情結局，呼應你剛剛用詞的方式。'],
+  sample:[['ai','你是回到 1929 年的時空偵探。街角的報童喊著：「Stock market CRASH！」——你要用 crash 這個字回應他，才能繼續往前走。']]}},
+
+{n:'微動作記憶法指南',ic:'🤚',mode:'game',tags:['情境編碼+1','即時輸出+2','主動回想+2'],dur:'5 分鐘',out:'建立 5 個身體動作錨點 + 卡住提示',
+ goal:'把抽象概念綁定手勢、姿勢或小道具。',
+ design:{lab:'🎮 小遊戲：動作卡默契挑戰',
+  flow:['先建立 5 組「詞 → 手勢」對照（increase 手往上揮、reject 推開手勢、抽象概念轉壓力球）。',
+   '進入計時挑戰：系統快速顯示詞彙，你要在 3 秒內比出對應手勢，像默契大考驗一樣，卡住或比錯就重來。',
+   '全部 5 組在時限內零失誤過一輪才算完成這張卡。'],
+  note:'動作錨定靠的是身體記住動作，不是靠文字對話——所以設計成有時限壓力的動作挑戰遊戲，而不是純聊天問答。'}},
+
+{n:'番茄鐘走讀與空間轉換術',ic:'🍅',mode:'tool',tags:['情境編碼+2','空間視覺+1','主動回想+2'],dur:'6 分鐘',out:'產生一份 20/5 走讀計畫 + 空間分類表',
+ goal:'把不同學科分配到房間角落，用移動分類記憶。',
+ design:{lab:'🛠️ 結構化任務：走讀排程產生器',
+  flow:['列出今天要讀的學科，各自指派房間裡的一個角落（窗台背英文、書桌算數學、床頭看歷史）。',
+   '排出「讀 20 分鐘、站起來走動 5 分鐘」的循環表，走動時剛好換到下一個學科的角落。',
+   '結束後回想每個學科內容時，先想「我在哪個角落讀的」，用空間線索找回記憶。'],
+  note:'這是自己排計畫、自己執行的空間管理任務，AI 只負責幫忙排班表，不涉及互動對話。'}},
+
+{n:'字根字首拆解樹',ic:'🧩',mode:'card',tags:['原理解釋+2','結構化+2','差異辨析+1'],dur:'7 分鐘',out:'完成一棵字根拆解樹 + 同根延伸',
+ goal:'把長單字拆成 Prefix、Root、Suffix 的文字樂高。',
+ design:{lab:'🎴 卡牌玩法：字根樂高',
+  flow:['三種顏色的卡片：藍＝前綴（un-、pre-）、綠＝字根（cede、spect）、黃＝後綴（-ed、-tion）。',
+   '像拼樂高一樣把卡片組合成新單字，每拼一個，自己先猜意思，再翻卡確認（unprecedented = un+pre+cede+ed = 以前沒走過的→空前的）。',
+   '同一張字根卡可以無限重組出新單字——拼一次記住一整組同字根詞彙。'],
+  note:'字根拆解本質是組合積木的視覺操作，做成實體/虛擬卡片比純文字問答更直覺，也更容易「玩一次記十個字」。'}},
+
+{n:'知識地圖連連看',ic:'🗺️',mode:'card',tags:['結構化+2','原理解釋+2','跨域連結+2'],dur:'9 分鐘',out:'完成一張因果鏈地圖 + 邏輯鏈檢查',
+ goal:'把破碎知識拖成因為 A 所以 B 的因果網絡。',
+ design:{lab:'🎴 卡牌玩法：因果鏈牌組',
+  flow:['一疊事件/現象卡片打散發下（如地理的洋流、氣候、經濟作物；或歷史條約與戰爭）。',
+   '把卡片排成「因為 A，所以導致 B，最後產生 C」的因果鏈，卡住可以抽一張「輔助提示卡」。',
+   '排列完成後翻開「官方因果鏈」卡對答案，錯的地方標記起來，下次優先重排。'],
+  note:'排列因果順序是空間操作型任務，用拖拉卡片比文字來回問答更能訓練「看到全局」的結構感。'}},
+
+{n:'AI 挑錯與除錯專家任務',ic:'🐛',mode:'ai',tags:['錯誤修正+3','原理解釋+2','差異辨析+1'],dur:'8 分鐘',out:'找出錯誤、說明原因、產生修正版',
+ goal:'扮演抓漏專家，修正 AI 故意寫錯的摘要或解題。',
+ design:{lab:'🤖 機器人角色：故意犯錯的助教',
+  flow:['AI 給一段刻意寫錯的課文摘要或解題過程（邏輯漏洞、語法錯誤、事實矛盾都可能藏在裡面）。',
+   '你要扮演「抓漏專家」找出錯誤，說明錯在哪裡、為什麼錯。',
+   'AI 承認錯誤（或反駁你、逼你講得更精確），最後一起產出修正版。'],
+  sample:[['ai','（故意寫錯）「二次大戰爆發於 1945 年，起因是珍珠港事變。」——你覺得這段話哪裡有問題？'],['me','年份跟起因都錯了⋯'],['ai','喔？那正確的是？順便告訴我珍珠港事變跟二戰的關係到底是什麼。']]}},
+
+{n:'數字轉碼訓練',ic:'🔢',mode:'card',tags:['數字轉碼+3','原理解釋+1','主動回想+1'],dur:'6 分鐘',out:'建立一組數字記憶碼 + 立即提取測驗',
+ goal:'把年份、公式、代碼轉成可記憶的規則。',
+ design:{lab:'🎴 卡牌玩法：數字諧音卡',
+  flow:['0–9 每個數字先固定對應一個圖像/諧音（0=球、1=筆、2=鵝⋯），做成一組基礎數字卡。',
+   '拿到一組要記的數字（年份、公式係數）後，抽出對應的數字卡排成一列，用這些圖像編一個串連畫面故事。',
+   '蓋牌測試：只回想故事畫面，倒推出原本的數字序列。'],
+  note:'數字轉碼靠的是固定圖像編碼系統（類似 major system），做成卡牌可以重複使用同一組對照表，比每次重新對話生成更有效率。'}},
+
+{n:'相似概念拆解',ic:'👯',mode:'similar',tags:['差異辨析+3','跨域連結+1','結構化+1'],dur:'7 分鐘',out:'輸出差異表 + 每組一個聯想鉤子',
+ goal:'拆相似單字、公式、概念，做差異表與聯想鉤子。',
+ design:{lab:'🔍 相似事物訓練：雙胞胎卡對戰',
+  flow:['每回合抽一對容易搞混的概念（affect／effect、動能／位能、because／because of）。',
+   '各自寫出兩者的關鍵定義，再核對成三欄差異表：共同點／差異點／最容易搞混的情境。',
+   '最後幫這一對想一個「聯想鉤子」（例如 affect 是動詞、effect 是名詞：Actions affect, Effects are the end result），下次看到就不會再搞混。'],
+  note:'這正是為「一直背混」設計的訓練——重點不是記住單一個詞，是記住兩者的「差異點」，所以用配對比較的格式，而不是逐一問答。'}},
+
+{n:'錯誤修正回路',ic:'🔁',mode:'ai',tags:['錯誤修正+3','主動回想+1','即時輸出+1'],dur:'5 分鐘',out:'完成一次錯誤診斷 + 修正版答案',
+ goal:'故意犯錯、找原因、重做一次，形成肌肉記憶。',
+ design:{lab:'🤖 機器人角色：刻意設局的考官',
+  flow:['AI 出一題你上次真的錯過的題目（接歷史練習紀錄），先讓你再做一次——通常會再錯一次同樣的點。',
+   'AI 不直接公布答案，先問：「你覺得自己是不是又踩到上次那個坑了？」逼你自己先診斷錯因。',
+   '診斷完，當場重做一次修正版，AI 存進「錯誤修正回路」清單，下次間隔一段時間後再考一次同一題型。'],
+  sample:[['ai','這題你上個月也錯過類似的——這次感覺哪裡怪怪的嗎？先別看答案，自己抓抓看問題在哪。']]}}
+];
+
+function renderModeRow(){
+  const row=document.getElementById('modeRow');
+  const all=[['all',{label:'全部','emoji':'🗂️',color:'#0e3a36'}]].concat(Object.entries(MODES));
+  row.innerHTML=all.map(([k,m])=>
+    `<button class="mchip${k==='all'?' on':''}" data-k="${k}" style="${k==='all'?'background:'+m.color:''}" onclick="filterMode('${k}')">${m.emoji} ${m.label}</button>`
+  ).join('');
+}
+let activeMode='all';
+function filterMode(k){
+  activeMode=k;
+  document.querySelectorAll('.mchip').forEach(b=>{
+    const on=b.dataset.k===k;
+    b.classList.toggle('on',on);
+    b.style.background=on?(k==='all'?'#0e3a36':MODES[k].color):'';
+  });
+  renderCards();
+}
+function renderCards(){
+  const list=activeMode==='all'?CARDS:CARDS.filter(c=>c.mode===activeMode);
+  document.getElementById('cards').innerHTML=list.map(c=>{
+    const m=MODES[c.mode];
+    const d=c.design;
+    let body='';
+    if(d.flow){
+      body+=`<span class="lab">${d.lab}</span>`+d.flow.map((s,i)=>`<p>${i+1}. ${s}</p>`).join('');
+    }
+    if(d.sample){
+      body+=`<span class="lab">對話示意</span>`+d.sample.map(([who,txt])=>
+        `<div class="bubble${who==='me'?' me':''}">${who==='ai'?'🤖 ':'🙋 '}${txt}</div>`).join('');
+    }
+    if(d.note){
+      body+=`<span class="lab">為什麼是這個形式</span><p>${d.note}</p>`;
+    }
+    return `<div class="card">
+      <div class="chead">
+        <span class="ic">${c.ic}</span>
+        <b>${c.n}</b>
+        <span class="modebadge" style="background:${m.color}">${m.emoji} ${m.label}</span>
+      </div>
+      <p class="goal">${c.goal}</p>
+      <div class="tags">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <div class="meta">⏱️ ${c.dur} · ${c.out}</div>
+      <details><summary>查看訓練設計 →</summary><div class="design">${body}</div></details>
+    </div>`;
+  }).join('');
+}
+renderModeRow();
+renderCards();
+</script>
+</body>
+</html>
