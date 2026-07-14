@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { BRAND } from '@/lib/theme'
 
+// Google provider isn't enabled in Supabase yet (Authentication → Providers → Google).
+// Flip to true once Client ID/Secret are configured there — no other code change needed.
+const GOOGLE_LOGIN_ENABLED = false
+
 export default function LoginPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -54,7 +58,7 @@ export default function LoginPage() {
       <button onClick={submit} disabled={busy || !email || !pw} style={{ ...btnP, opacity: busy || !email || !pw ? .5 : 1 }}>
         {busy ? '處理中…' : mode === 'signin' ? '登入' : '建立帳號'}
       </button>
-      <button onClick={google} style={btnG}>使用 Google 登入</button>
+      {GOOGLE_LOGIN_ENABLED && <button onClick={google} style={btnG}>使用 Google 登入</button>}
       {msg && <p style={{ fontSize: 13, marginTop: 14, color: msg.startsWith('✅') ? '#10b981' : '#ef4444' }}>{msg}</p>}
     </main>
   )
