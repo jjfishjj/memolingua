@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MemoLingua · 每日訓練課表 📅</title>
+<meta name="description" content="把學習訓練場的 24 種記憶訓練排成一週課表：選每天練習時間，自動輪替分配，不重複、不漏練。">
+<style>
+  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .wrap{max-width:640px;margin:0 auto;background:#fff;min-height:100vh;padding:0 20px 60px}
+  h1{font-size:23px;margin:0}
+  h2{font-size:15px;margin:0 0 8px}
+  .muted{color:var(--sub);font-size:13px}
+  .card{border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:14px}
+  .chead{display:flex;align-items:center;gap:10px}
+  .chead .ic{font-size:26px}
+  .chead b{font-size:15px}
+  .modebadge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:99px;color:#fff;margin-left:auto;white-space:nowrap}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0 4px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#eef6f4;color:var(--primary)}
+  .goal{font-size:13.5px;color:#374151;margin:6px 0}
+  .meta{font-size:12px;color:var(--sub)}
+  details{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+  summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--accent)}
+  .design{font-size:13px;color:#374151;margin-top:8px}
+  .design .lab{font-weight:700;font-size:12px;color:var(--sub);display:block;margin-top:8px}
+  .design p{margin:2px 0 0}
+  .btnrow{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:8px 14px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:13px;cursor:pointer;transition:.15s}
+  .chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .modechip{padding:6px 11px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:12px;cursor:pointer}
+  .modechip.on{color:#fff;border-color:transparent}
+  .genbtn{width:100%;padding:14px;border:none;border-radius:14px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px}
+  .genbtn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:600;margin-top:8px}
+  .day{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+  .day .dhead{display:flex;align-items:baseline;gap:8px}
+  .day .dhead b{font-size:14px}
+  .day .dhead span{font-size:12px;color:var(--sub);margin-left:auto}
+  .task{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f3f4f6;font-size:13px}
+  .task:first-of-type{border-top:none;margin-top:6px}
+  .task .m{font-size:10px;padding:1px 7px;border-radius:99px;color:#fff;flex-shrink:0}
+  .task .d{margin-left:auto;color:var(--sub);font-size:12px;flex-shrink:0}
+  .overflow{margin-top:14px;padding:12px 14px;border-radius:14px;background:#fffbeb;border:1px solid #fde68a}
+  .overflow b{font-size:13px}
+  .overflow .task{border-top:1px solid #fde68a}
+  .cta{display:block;text-align:center;padding:14px;border-radius:14px;background:var(--primary);color:#fff;font-weight:700;font-size:15px;text-decoration:none;margin-top:12px}
+  .cta.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:500}
+  .copybox{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:11.5px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="text-align:center;padding:32px 0 8px">
+    <div style="font-size:44px">📅</div>
+    <h1>每日訓練課表</h1>
+    <p class="muted">學習訓練場的 24 種記憶訓練，排成一週輪替課表。<br>選你每天能練多久，其他交給系統分配。</p>
+  </div>
+
+  <!-- 新增技法 -->
+  <div class="card">
+    <h2>🧰 補充核心技法（新加入訓練清單）</h2>
+    <p class="muted" style="margin-bottom:0">這兩個是「學一次、用一輩子」的底層方法，學會後每週固定拿出來複習一次，並會被排進下方課表。</p>
+  </div>
+  <div id="methodCards"></div>
+
+  <!-- 排程產生器 -->
+  <div class="card">
+    <h2>⚙️ 產生你的課表</h2>
+    <p class="muted" style="margin-bottom:10px">每天能投入多少時間？</p>
+    <div class="btnrow" id="budgetRow"></div>
+    <p class="muted" style="margin:14px 0 8px">只想練特定形式？（可複選，預設全選）</p>
+    <div class="btnrow" id="modeRow"></div>
+    <button class="genbtn" onclick="generate()">🎲 產生本週課表</button>
+    <button class="genbtn ghost" onclick="generate(true)">🔀 換一批排法</button>
+  </div>
+
+  <div id="calendar"></div>
+  <div id="overflowBox"></div>
+
+  <button class="genbtn ghost" id="copyBtn" onclick="copySchedule()" style="display:none">📋 複製課表文字</button>
+  <div class="copybox" id="copyBox"></div>
+
+  <a class="cta ghost" href="gym.html">🏋️ 回學習訓練場（22 張訓練卡）</a>
+  <a class="cta ghost" href="training.html">📖 回八大天賦訓練圖鑑</a>
+  <a class="cta ghost" href="index.html">← 回 MemoLingua 首頁</a>
+</div>
+
+<script>
+const MODES={
+ ai:{label:'AI 對話',emoji:'🤖',color:'#0ea5e9'},
+ card:{label:'卡牌訓練',emoji:'🎴',color:'#8b5cf6'},
+ game:{label:'小遊戲',emoji:'🎮',color:'#f59e0b'},
+ sound:{label:'相似聲音訓練',emoji:'🎵',color:'#ec4899'},
+ similar:{label:'相似事物訓練',emoji:'🔍',color:'#10b981'},
+ tool:{label:'結構工具',emoji:'🛠️',color:'#64748b'},
+ core:{label:'核心技法',emoji:'🧰',color:'#0e3a36'}};
+
+/* 兩個新增的核心技法卡（完整設計，展示在頁面上方） */
+const METHOD_CARDS=[
+{n:'數字轉碼法',ic:'🧮',mode:'core',tags:['數字轉碼+3','主動回想+2'],dur:'首次學習 15 分鐘 · 之後每次複習 5 分鐘',out:'建立一套 0–9 固定圖像對照表，終身可重複使用',
+ goal:'把任何數字序列（年份、電話、公式係數）轉成可回想的畫面，是「數字轉碼訓練」卡的底層方法。',
+ design:{lab:'🧰 核心口訣：0–9 固定對照表',
+  flow:['先把 0–9 各自固定對應一個「長得像數字」或「諧音」的圖像，一輩子不要換：<br>0=蛋（像0的形狀）、1=蠟燭（直直一枝）、2=天鵝（脖子彎彎像2）、3=愛心（雙峰像3）、4=帆船的旗子、5=衣架鉤子、6=煙斗（圈+柄像6）、7=枴杖（角度像7）、8=雪人（兩圈疊起來）、9=氣球（圓圈+尾巴像9）。',
+   '拿到一組新數字（例如年份 1815），兩個兩個拆開：18、15 → 「雪人」＋「蠟燭衣架」，把兩個畫面串成一個誇張連續動作故事。',
+   '複習時只回想故事畫面，倒推出數字——不用死背數字本身。'],
+  note:'這套對照表建立一次之後不要再換，換了就要重新練熟悉度；建議先用生日、手機末四碼練習，熟了再套用到真正要背的公式/年份。'}},
+
+{n:'空間定位法',ic:'🧭',mode:'core',tags:['空間視覺+3','主動回想+2','情境編碼+1'],dur:'首次建路線 20 分鐘 · 之後每次複習 5 分鐘',out:'建立一條固定的 10 站記憶路線，可重複清空重放',
+ goal:'記憶宮殿的原始版本——不需要 3D 軟體，用你每天走的真實路線就能做，是「記憶宮殿 3D 線上版」卡的底層方法。',
+ design:{lab:'🧰 核心步驟：路線法（Method of Loci）',
+  flow:['選一條你閉著眼都記得的路線（家門口到房間、每天通勤路線），沿路挑 10 個固定停靠點，順序不能亂（大門→玄關鞋櫃→客廳沙發→冰箱⋯）。',
+   '把要記的每一項知識變成一個誇張畫面，依序「放」在對應停靠點上——例如背元素週期表第一個氫，就想像大門口飄著一顆氫氣球擋住你出門。',
+   '複習時，在腦中重新走一遍這條路線，依序經過每個停靠點，畫面會自動觸發對應的記憶內容。'],
+  note:'固定路線可以無限次重複使用：這批內容背熟了，就把路線「清空」放下一批新知識。想要更炫的互動版可以玩學習訓練場裡的「記憶宮殿 3D 線上版」卡。'}}
+];
+
+/* 22 張 Learning Gym 卡的排程用精簡資料（名稱/圖示/形式/分鐘數）
+   完整訓練設計請見 gym.html，本頁不重複列出，只負責排課表。 */
+const GYM_POOL=[
+ ['情境鉤子卡','📍','ai',7],['資料轉表格訓練','📊','tool',8],['聲音跟讀卡','🎧','sound',6],
+ ['情感故事卡','📖','ai',8],['概念織網卡','🕸️','card',7],['費曼原理卡','🧑‍🏫','ai',9],
+ ['即時輸出卡','⚡','ai',5],['記憶宮殿 3D 線上版','🏛️','game',8],['AI 圖像生成變形記','🎨','card',7],
+ ['螢光色階與符號筆記術','🖍️','tool',6],['Rap 節奏單字覆誦','🎤','sound',5],['Podcast 說書人任務','🎙️','ai',8],
+ ['諧音迷因與口訣創作家','😂','ai',6],['情境式 AI 劇本殺','🎭','ai',9],['微動作記憶法指南','🤚','game',5],
+ ['番茄鐘走讀與空間轉換術','🍅','tool',6],['字根字首拆解樹','🧩','card',7],['知識地圖連連看','🗺️','card',9],
+ ['AI 挑錯與除錯專家任務','🐛','ai',8],['數字轉碼訓練','🔢','card',6],['相似概念拆解','👯','similar',7],
+ ['錯誤修正回路','🔁','ai',5],
+];
+// 完整訓練清單 = 22 張 Gym 卡 + 2 個核心技法（複習節奏以 5 分鐘計入排程）
+const POOL=[
+  ...GYM_POOL.map(([n,ic,mode,min])=>({n,ic,mode,min})),
+  {n:'數字轉碼法（複習）',ic:'🧮',mode:'core',min:5},
+  {n:'空間定位法（複習）',ic:'🧭',mode:'core',min:5},
+];
+
+const DAYS=['週一','週二','週三','週四','週五','週六','週日'];
+let budget=30;
+let activeModes=new Set(Object.keys(MODES));
+let lastSchedule=null;
+
+function renderMethodCards(){
+  document.getElementById('methodCards').innerHTML=METHOD_CARDS.map(c=>{
+    const m=MODES[c.mode];
+    const d=c.design;
+    const body=`<span class="lab">${d.lab}</span>`+d.flow.map((s,i)=>`<p>${i+1}. ${s}</p>`).join('')
+      +`<span class="lab">補充</span><p>${d.note}</p>`;
+    return `<div class="card">
+      <div class="chead"><span class="ic">${c.ic}</span><b>${c.n}</b>
+        <span class="modebadge" style="background:${m.color}">${m.emoji} ${m.label}</span></div>
+      <p class="goal">${c.goal}</p>
+      <div class="tags">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <div class="meta">⏱️ ${c.dur} · ${c.out}</div>
+      <details><summary>查看方法詳解 →</summary><div class="design">${body}</div></details>
+    </div>`;
+  }).join('');
+}
+
+function renderBudgetRow(){
+  const opts=[15,30,45,60];
+  document.getElementById('budgetRow').innerHTML=opts.map(v=>
+    `<button class="chip${v===budget?' on':''}" data-v="${v}" onclick="setBudget(${v})">${v} 分鐘/天</button>`).join('');
+}
+function setBudget(v){budget=v;renderBudgetRow();}
+
+function renderModeRow(){
+  document.getElementById('modeRow').innerHTML=Object.entries(MODES).map(([k,m])=>
+    `<button class="modechip${activeModes.has(k)?' on':''}" data-k="${k}" style="${activeModes.has(k)?'background:'+m.color:''}" onclick="toggleMode('${k}')">${m.emoji} ${m.label}</button>`).join('');
+}
+function toggleMode(k){
+  if(activeModes.has(k)){ if(activeModes.size>1) activeModes.delete(k); } else activeModes.add(k);
+  renderModeRow();
+}
+
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function generate(reshuffle=false){
+  const pool=shuffle(POOL.filter(t=>activeModes.has(t.mode)));
+  const days=DAYS.map(d=>({name:d,items:[],total:0}));
+  const overflow=[];
+  let di=0, guard=0;
+  for(const item of pool){
+    let placed=false;
+    // 從目前這天開始找，找一輪內能塞下這個任務的天
+    for(let tries=0;tries<7;tries++){
+      const day=days[(di+tries)%7];
+      if(day.total+item.min<=budget){ day.items.push(item); day.total+=item.min; placed=true; break; }
+    }
+    if(!placed) overflow.push(item);
+    di=(di+1)%7; // 輪流從下一天開始找，讓任務盡量分散不擠同一天
+    guard++; if(guard>500) break;
+  }
+  lastSchedule={days,overflow};
+  renderCalendar();
+}
+
+function renderCalendar(){
+  if(!lastSchedule) return;
+  const {days,overflow}=lastSchedule;
+  document.getElementById('calendar').innerHTML=days.map(day=>`
+    <div class="day">
+      <div class="dhead"><b>${day.name}</b><span>${day.total} / ${budget} 分鐘</span></div>
+      ${day.items.length? day.items.map(it=>{
+        const m=MODES[it.mode];
+        return `<div class="task"><span>${it.ic}</span><span>${it.n}</span>
+          <span class="m" style="background:${m.color}">${m.emoji}</span>
+          <span class="d">${it.min} 分</span></div>`;
+      }).join('') : '<div class="task muted">— 休息日，或加碼複習前一天的內容 —</div>'}
+    </div>`).join('');
+
+  const ofBox=document.getElementById('overflowBox');
+  if(overflow.length){
+    ofBox.innerHTML=`<div class="overflow"><b>⏳ 本週排不下，下週優先排入（${overflow.length} 項）</b>
+      ${overflow.map(it=>{const m=MODES[it.mode];
+        return `<div class="task"><span>${it.ic}</span><span>${it.n}</span>
+          <span class="m" style="background:${m.color}">${m.emoji}</span>
+          <span class="d">${it.min} 分</span></div>`;}).join('')}
+      <p class="muted" style="margin-top:6px">想一次排完全部 24 項？把每天練習時間調高，或勾掉幾種不想練的形式縮小池子。</p>
+    </div>`;
+  } else { ofBox.innerHTML=''; }
+
+  document.getElementById('copyBtn').style.display='block';
+  document.getElementById('copyBox').style.display='none';
+}
+
+function copySchedule(){
+  if(!lastSchedule) return;
+  const {days,overflow}=lastSchedule;
+  let txt=`MemoLingua 每日訓練課表（每天 ${budget} 分鐘）\n\n`;
+  days.forEach(day=>{
+    txt+=`【${day.name}】共 ${day.total} 分鐘\n`;
+    day.items.forEach(it=>{ txt+=`  ・${it.n}（${MODES[it.mode].label}，${it.min} 分）\n`; });
+    if(!day.items.length) txt+='  ・（休息日）\n';
+    txt+='\n';
+  });
+  if(overflow.length){
+    txt+=`【下週優先排入】\n`;
+    overflow.forEach(it=>{ txt+=`  ・${it.n}（${MODES[it.mode].label}，${it.min} 分）\n`; });
+  }
+  const box=document.getElementById('copyBox');
+  box.textContent=txt; box.style.display='block';
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
+}
+
+renderMethodCards();
+renderBudgetRow();
+renderModeRow();
+generate();
+</script>
+</body>
+</html>
