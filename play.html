@@ -163,21 +163,37 @@
 const CHAT_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co/functions/v1/chat';
 const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
 
-async function streamChat(messages,settings,onDelta,onDone,onError){
-  const abort=new AbortController();
-  const timeout=setTimeout(()=>abort.abort(),45000);
-  let resp;
-  try{
-    resp=await fetch(CHAT_URL,{method:'POST',
-      headers:{'Content-Type':'application/json',Authorization:'Bearer '+ANON},
-      body:JSON.stringify({messages,settings}),signal:abort.signal});
-  }catch(e){
-    clearTimeout(timeout);
-    onError(e && e.name==='AbortError' ? 'AI 逾時沒有回應，請稍後再試。' : '無法連線到 AI 伺服器。');
-    return;
+// Gemini 免費層偶爾會短暫過載／限流，回 500 或 429。這類是暫時性的（實測連打三次
+// 就恢復），所以自動重試而不是直接讓使用者卡住；只有重試用盡才回報錯誤。
+const RETRYABLE=[429,500,502,503,504];
+async function streamChat(messages,settings,onDelta,onDone,onError,onRetry){
+  const MAX_TRIES=3;
+  let resp,lastErr='';
+  for(let attempt=1;attempt<=MAX_TRIES;attempt++){
+    const abort=new AbortController();
+    const timeout=setTimeout(()=>abort.abort(),45000);
+    try{
+      resp=await fetch(CHAT_URL,{method:'POST',
+        headers:{'Content-Type':'application/json',Authorization:'Bearer '+ANON},
+        body:JSON.stringify({messages,settings}),signal:abort.signal});
+      clearTimeout(timeout);
+    }catch(e){
+      clearTimeout(timeout);
+      lastErr=(e&&e.name==='AbortError')?'AI 逾時沒有回應':'無法連線到 AI 伺服器';
+      resp=null;
+    }
+    if(resp&&resp.ok&&resp.body)break;              // 成功，往下讀串流
+    if(resp&&!RETRYABLE.includes(resp.status)){     // 非暫時性錯誤，不必重試
+      onError('AI 服務錯誤 (HTTP '+resp.status+')'); return;
+    }
+    if(resp)lastErr='AI 服務忙碌 (HTTP '+resp.status+')';
+    if(attempt<MAX_TRIES){
+      if(onRetry)onRetry(attempt,MAX_TRIES);
+      await new Promise(r=>setTimeout(r,attempt*1500));  // 遞增退避：1.5s → 3s
+      resp=null;
+    }
   }
-  clearTimeout(timeout);
-  if(!resp.ok || !resp.body){ onError('AI 服務錯誤 (HTTP '+resp.status+')'); return; }
+  if(!resp||!resp.ok||!resp.body){ onError(lastErr+'，請稍後再試一次。'); return; }
   const reader=resp.body.getReader();
   const decoder=new TextDecoder();
   let buf='';
@@ -235,7 +251,8 @@ function startHookCard(){
     ()=>{ hookMessages.push({role:'assistant',content:acc});
       document.getElementById('aiTyping').textContent='';
       document.getElementById('aiInputRow').style.display='flex'; },
-    err=>{ document.getElementById('aiTyping').textContent='⚠ '+err; document.getElementById('aiStart').disabled=false; });
+    err=>{ document.getElementById('aiTyping').textContent='⚠ '+err; document.getElementById('aiStart').disabled=false; },
+    (n,max)=>{ document.getElementById('aiTyping').textContent=`🤖 AI 忙碌中，重試 ${n}/${max}…`; });
 }
 function sendHookReply(){
   const inp=document.getElementById('aiInput');
@@ -248,7 +265,8 @@ function sendHookReply(){
   streamChat(hookMessages,settings,
     d=>{acc+=d; bub.innerHTML='🤖 '+styleCorrections(acc);},
     ()=>{ hookMessages.push({role:'assistant',content:acc}); document.getElementById('aiTyping').textContent=''; },
-    err=>{ document.getElementById('aiTyping').textContent='⚠ '+err; });
+    err=>{ document.getElementById('aiTyping').textContent='⚠ '+err; },
+    (n,max)=>{ document.getElementById('aiTyping').textContent=`🤖 AI 忙碌中，重試 ${n}/${max}…`; });
 }
 
 /* ============ 2. 卡牌訓練：字根字首拆解樹 ============ */
