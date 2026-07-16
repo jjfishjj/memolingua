@@ -4,148 +4,351 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>MemoLingua · VARK 蒐集後台</title>
+<title>MemoLingua · 後台</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root{--v:#6366F1;--a:#EC4899;--r:#10B981;--k:#F59E0B;
-    --primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink)}
-  .wrap{max-width:760px;margin:0 auto;padding:24px 18px 60px}
-  h1{font-size:22px;margin:0 0 2px}
-  .muted{color:var(--sub)}
+  .wrap{max-width:820px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:22px;margin:0 0 2px}.muted{color:var(--sub)}
   .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
   .card h2{font-size:15px;margin:0 0 12px}
   .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  @media(max-width:560px){.kpi{grid-template-columns:repeat(2,1fr)}}
   .kpi .b{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
-  .kpi .n{font-size:26px;font-weight:800;color:var(--primary)}
-  .kpi .l{font-size:11px;color:var(--sub);margin-top:2px}
+  .kpi .n{font-size:24px;font-weight:800;color:var(--primary)}.kpi .l{font-size:11px;color:var(--sub);margin-top:2px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:560px){.grid2{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(3,1fr)}}
-  .barrow{margin-bottom:9px}
-  .barlab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
-  .bartrack{height:9px;background:#eef0f3;border-radius:99px;overflow:hidden}
-  .bartrack>div{height:100%;border-radius:99px;transition:.5s}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  .barrow{margin-bottom:9px}.barlab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+  .bartrack{height:9px;background:#eef0f3;border-radius:99px;overflow:hidden}.bartrack>div{height:100%;border-radius:99px;transition:.5s}
+  table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}
   th{color:var(--sub);font-weight:600;font-size:12px}
-  .pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;color:#fff}
   .reload{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
   .err{color:#ef4444;font-size:13px;margin-top:10px}
+  .tin{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;outline:none;margin-bottom:10px}
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:99;display:flex;align-items:center;justify-content:center;padding:20px}
+  /* tabs */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .tab{padding:8px 14px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:13px;cursor:pointer;font-weight:600}
+  .tab.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .pane{display:none}.pane.on{display:block}
+  .note{font-size:12px;color:var(--sub);margin-top:8px}
 </style>
 </head>
 <body>
+
+<!-- 🔐 管理員登入閘門 -->
+<div id="gate">
+  <div class="card" style="max-width:360px;width:100%;margin:0">
+    <div style="text-align:center"><div style="font-size:38px">🔐</div><h1 style="margin-top:6px">後台登入</h1>
+      <p class="muted" style="font-size:13px">僅限管理員。請用你的 MemoLingua 帳號登入。</p></div>
+    <input id="gEmail" class="tin" type="email" placeholder="Email" style="margin-top:14px">
+    <input id="gPw" class="tin" type="password" placeholder="密碼" onkeydown="if(event.key==='Enter')adminLogin(this)">
+    <button class="reload" style="width:100%;padding:12px" onclick="adminLogin(this)">登入</button>
+    <div id="gMsg" class="err" style="text-align:center"></div>
+  </div>
+</div>
+
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:10px">
-    <div>
-      <h1>📊 VARK 蒐集後台</h1>
-      <p class="muted" style="font-size:13px;margin:2px 0 0">MemoLingua 公開量表 · 即時統計（僅彙總，無個資）</p>
+    <div><h1>🧠 MemoLingua 後台</h1><p class="muted" style="font-size:13px;margin:2px 0 0">僅彙總，無個資 · 🔒 管理員專用</p></div>
+    <button class="reload" style="margin-left:auto" onclick="loadAll()">↻ 重新整理</button>
+    <button class="reload" style="background:#fff;color:var(--sub);border:1px solid var(--line)" onclick="logout()">登出</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-p="scale">🏅 記憶天賦量表</button>
+    <button class="tab" data-p="play">🎮 訓練行為</button>
+    <button class="tab" data-p="vark">📊 簡易 VARK</button>
+  </div>
+
+  <!-- ===== 分頁 1：記憶天賦量表 ===== -->
+  <div class="pane on" id="p-scale">
+    <div class="kpi">
+      <div class="b"><div class="n" id="sTotal">—</div><div class="l">總填寫人數</div></div>
+      <div class="b"><div class="n" id="s7d">—</div><div class="l">近 7 天</div></div>
+      <div class="b"><div class="n" id="sLeads">—</div><div class="l">email 名單</div></div>
     </div>
-    <button class="reload" style="margin-left:auto" onclick="load()">↻ 重新整理</button>
-  </div>
-
-  <div class="kpi">
-    <div class="b"><div class="n" id="kTotal">—</div><div class="l">總填寫人數</div></div>
-    <div class="b"><div class="n" id="k7d">—</div><div class="l">近 7 天</div></div>
-    <div class="b"><div class="n" id="kEeg">—</div><div class="l">有連腦波</div></div>
-  </div>
-
-  <div class="grid2">
+    <div class="grid2">
+      <div class="card"><h2>主導天賦分佈</h2><canvas id="donut" height="210"></canvas></div>
+      <div class="card"><h2>平均輸入偏好</h2><canvas id="radar" height="210"></canvas></div>
+    </div>
+    <div class="card"><h2>八大天賦佔比</h2><div id="archBars"></div></div>
+    <div class="card"><h2>熱門組合 Top 12</h2><div id="combos"></div></div>
+    <div class="card"><h2>大家在學什麼？ Top 20</h2><div id="targets"><p class="muted" style="font-size:13px">載入中…</p></div></div>
+    <div class="card"><h2>最近填寫</h2><table><thead><tr><th>主導</th><th>次要</th><th>在學</th><th>時間</th></tr></thead><tbody id="sRecent"></tbody></table></div>
     <div class="card">
-      <h2>學習風格分佈</h2>
-      <canvas id="donut" height="200"></canvas>
+      <h2>🏫 機構分流 · 資料匯出</h2>
+      <p class="muted" style="font-size:12px;margin:-6px 0 12px">依天賦篩選逐筆資料，匯出 CSV 做學生分流／課程推薦。不含 email。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="fTop1" style="flex:1;min-width:160px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;font-size:14px">
+          <option value="">全部天賦</option></select>
+        <button class="reload" onclick="applyFilter()">套用篩選</button>
+        <button class="reload" style="background:var(--accent)" onclick="exportCSV(this)">⬇ 匯出 CSV</button>
+      </div>
+      <p class="muted" id="fCount" style="font-size:13px;margin-top:10px"></p>
+      <div style="overflow-x:auto;margin-top:6px">
+        <table><thead><tr><th>時間</th><th>主導</th><th>次要</th><th>視/聽/文/動</th><th>在學</th></tr></thead><tbody id="rowsBody"></tbody></table>
+      </div>
     </div>
+  </div>
+
+  <!-- ===== 分頁 2：訓練行為 ===== -->
+  <div class="pane" id="p-play">
+    <div class="kpi">
+      <div class="b"><div class="n" id="pOpens">—</div><div class="l">總開啟次數</div></div>
+      <div class="b"><div class="n" id="pDone">—</div><div class="l">完成次數</div></div>
+      <div class="b"><div class="n" id="p7d">—</div><div class="l">近 7 天</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>各訓練形式熱度</h2><canvas id="modeDonut" height="210"></canvas></div>
+      <div class="card"><h2>哪種天賦的人比較會練</h2><canvas id="talentBar" height="210"></canvas></div>
+    </div>
+    <div class="card"><h2>🔥 最受歡迎的訓練卡</h2><div id="topCards"><p class="muted" style="font-size:13px">載入中…</p></div></div>
+    <div class="card"><h2>❄️ 沒人練過的卡（產品該改進的地方）</h2><div id="coldCards"></div></div>
+    <div class="card"><h2>最近的訓練</h2><table><thead><tr><th>訓練卡</th><th>動作</th><th>天賦</th><th>成績</th><th>時間</th></tr></thead><tbody id="pRecent"></tbody></table></div>
     <div class="card">
-      <h2>風格佔比</h2>
-      <div id="typeBars"></div>
+      <h2>🏫 訓練行為匯出</h2>
+      <p class="muted" style="font-size:12px;margin:-6px 0 12px">逐筆訓練紀錄，可看哪些學生／天賦在練什麼。不含個資。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="fEx" style="flex:1;min-width:160px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;font-size:14px">
+          <option value="">全部訓練卡</option></select>
+        <button class="reload" style="background:var(--accent)" onclick="exportPlayCSV(this)">⬇ 匯出 CSV</button>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <h2>大家在學什麼？（Top 20）</h2>
-    <div id="targets"><p class="muted" style="font-size:13px">載入中…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>最近填寫</h2>
-    <table><thead><tr><th>風格</th><th>在學</th><th>時間</th></tr></thead><tbody id="recent"></tbody></table>
+  <!-- ===== 分頁 3：簡易 VARK ===== -->
+  <div class="pane" id="p-vark">
+    <div class="kpi">
+      <div class="b"><div class="n" id="vTotal">—</div><div class="l">總填寫人數</div></div>
+      <div class="b"><div class="n" id="v7d">—</div><div class="l">近 7 天</div></div>
+      <div class="b"><div class="n" id="vEeg">—</div><div class="l">用過腦波</div></div>
+    </div>
+    <div class="card"><h2>VARK 風格分佈</h2><canvas id="vDonut" height="210"></canvas></div>
+    <div class="card"><h2>大家在學什麼？</h2><div id="vTargets"></div></div>
+    <div class="card"><h2>最近填寫</h2><table><thead><tr><th>風格</th><th>在學</th><th>時間</th></tr></thead><tbody id="vRecent"></tbody></table></div>
+    <p class="note">資料來源：<code>public_vark_stats()</code>——這是第一版簡易量表（index.html demo）的蒐集。主力量表請看「記憶天賦量表」分頁。</p>
   </div>
 
   <p id="err" class="err"></p>
-  <p class="muted" style="font-size:11px;margin-top:18px;text-align:center">資料來源：Supabase · public_vark_stats() · 此頁僅顯示彙總數字</p>
 </div>
 
 <script>
-const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
-const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
-const LABELS={visual:'👁️ 視覺型',auditory:'🎧 聽覺型',reading:'📖 讀寫型',kinesthetic:'🤸 體驗型'};
-const COLORS={visual:'#6366F1',auditory:'#EC4899',reading:'#10B981',kinesthetic:'#F59E0B'};
-const ORDER=['visual','auditory','reading','kinesthetic'];
-let donut;
+const SUPA='https://ycgjzrvfzaqaicvdtagq.supabase.co';
+const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
+const ARCH={img:['💠 影像造景師','#6366F1'],snd:['🎧 旋律獵人','#EC4899'],txt:['📑 邏輯解密者','#10B981'],act:['🎯 戲劇行動派','#F59E0B'],
+  soc:['🗣️ 圈粉教學家','#06b6d4'],sys:['📈 節奏工程師','#8b5cf6'],cre:['✨ 腦洞煉金師','#f43f5e'],biz:['💼 目標狙擊手','#0ea5e9']};
+const ORDER=['img','snd','txt','act','soc','sys','cre','biz'];
+const MODES={ai:['🤖 AI 對話','#0ea5e9'],card:['🎴 卡牌訓練','#8b5cf6'],game:['🎮 小遊戲','#f59e0b'],
+  sound:['🎵 相似聲音','#ec4899'],similar:['🔍 相似事物','#10b981'],tool:['🛠️ 結構工具','#64748b']};
+// 對應 play.html 的 22 張卡（用來顯示名稱、找出沒人練的卡）
+const CARDS={hook:'📍 情境鉤子卡',story:'📖 情感故事卡',feynman:'🧑‍🏫 費曼原理卡',impromptu:'⚡ 即時輸出卡',
+  podcast:'🎙️ Podcast 說書人',meme:'😂 諧音迷因',rp:'🎭 情境式劇本殺',bug:'🐛 AI 挑錯',fixloop:'🔁 錯誤修正回路',
+  root:'🧩 字根字首拆解樹',web:'🕸️ 概念織網卡',imgremix:'🎨 AI 圖像變形記',chain:'🗺️ 知識地圖連連看',numcode:'🔢 數字轉碼訓練',
+  gesture:'🤚 微動作記憶法',palace:'🏛️ 記憶宮殿',minimal:'🎧 聲音跟讀卡',rap:'🎤 Rap 節奏覆誦',
+  twin:'👯 相似概念拆解',table:'📊 資料轉表格',highlight:'🖍️ 螢光筆記術',pomodoro:'🍅 番茄鐘走讀'};
+const VARKC={visual:['👁️ 視覺型','#6366F1'],auditory:['👂 聽覺型','#EC4899'],reading:['📖 讀寫型','#10B981'],kinesthetic:['🤸 動覺型','#F59E0B']};
+let TOKEN=null, charts={};
 
-async function load(){
-  document.getElementById('err').textContent='';
+/* ===== 登入 ===== */
+const $=id=>document.getElementById(id);
+function H(){return {apikey:ANON,Authorization:'Bearer '+(TOKEN||ANON),'Content-Type':'application/json'};}
+function gmsg(t){$('gMsg').textContent=t||'';}
+async function rpc(name,body){
+  const r=await fetch(SUPA+'/rest/v1/rpc/'+name,{method:'POST',headers:H(),body:JSON.stringify(body||{})});
+  if(r.status===404)return {__missing:true};
+  if(r.status===401||r.status===403)throw new Error('權限不足或登入過期');
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return await r.json();
+}
+async function isAdmin(){
+  try{ const r=await fetch(SUPA+'/rest/v1/rpc/is_admin',{method:'POST',headers:H(),body:'{}'});
+    if(r.status===404)return 'nosetup';
+    if(!r.ok)return false; return (await r.json())===true;
+  }catch(e){ return false; }
+}
+async function adminLogin(btn){
+  const email=($('gEmail').value||'').trim(), pw=$('gPw').value||'';
+  if(!email||!pw){ gmsg('請輸入帳號密碼'); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='登入中…'; gmsg('');
   try{
-    // 後台上鎖後改用管理員 token（由 admin-scale.html 登入時存入）
-    const tok=sessionStorage.getItem('ml_admin_token')||SUPA_ANON;
-    const res=await fetch(SUPA_URL+'/rest/v1/rpc/public_vark_stats',{method:'POST',
-      headers:{apikey:SUPA_ANON,Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:'{}'});
-    if(res.status===401||res.status===403){
-      document.getElementById('err').innerHTML='🔒 此頁已上鎖，請先到 <a href="admin-scale.html">量表後台</a> 以管理員登入，再回到本頁。';
+    const res=await fetch(SUPA+'/auth/v1/token?grant_type=password',{method:'POST',
+      headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+    const j=await res.json();
+    if(!res.ok||!j.access_token)throw new Error(j.error_description||j.msg||'登入失敗');
+    TOKEN=j.access_token;
+    const ok=await isAdmin();
+    if(ok==='nosetup'){ TOKEN=null; throw new Error('後台尚未初始化：請先在 Supabase 執行 RUN_ME.sql 並把帳號加入 admins。'); }
+    if(ok!==true){ TOKEN=null; throw new Error('此帳號不是管理員，無權限進入。'); }
+    sessionStorage.setItem('ml_admin_token',TOKEN);
+    openDash();
+  }catch(e){ gmsg('⚠ '+e.message); btn.disabled=false; btn.textContent=t; }
+}
+function logout(){ TOKEN=null; sessionStorage.removeItem('ml_admin_token'); location.reload(); }
+function openDash(){ $('gate').style.display='none'; buildSelects(); loadAll(); }
+
+/* ===== 工具 ===== */
+const lbl=k=>(ARCH[k]||[k])[0], col=k=>(ARCH[k]||['','#888'])[1];
+const mlbl=k=>(MODES[k]||[k])[0], mcol=k=>(MODES[k]||['','#888'])[1];
+const cname=k=>CARDS[k]||k;
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmt=iso=>{const d=new Date(iso),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
+function chart(id,cfg){ if(charts[id])charts[id].destroy(); charts[id]=new Chart($(id),cfg); }
+function bars(el,rows){ // rows: [[label,color,value,extra]]
+  const max=Math.max(1,...rows.map(r=>r[2]));
+  $(el).innerHTML=rows.length?rows.map(([l,c,v,ex])=>
+    `<div class="barrow"><div class="barlab"><span>${l}</span><span style="color:${c};font-weight:700">${ex||v}</span></div>
+     <div class="bartrack"><div style="width:${Math.round(v/max*100)}%;background:${c}"></div></div></div>`).join('')
+    :'<p class="muted" style="font-size:13px">尚無資料</p>';
+}
+
+/* ===== 分頁切換 ===== */
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
+});
+
+/* ===== 載入全部 ===== */
+async function loadAll(){ $('err').textContent=''; loadScale(); loadPlay(); loadVark(); }
+
+/* --- 分頁 1：量表 --- */
+async function loadScale(){
+  try{
+    const s=await rpc('memory_scale_stats');
+    if(s.__missing){ $('err').textContent='⚠ 找不到 memory_scale_stats()——請先跑 RUN_ME.sql'; return; }
+    $('sTotal').textContent=s.total??0; $('s7d').textContent=s.last_7d??0;
+    try{ const c=await rpc('scale_leads_count'); $('sLeads').textContent=c.__missing?'—':c; }catch(e){ $('sLeads').textContent='—'; }
+    const by=s.by_top1||{}, counts=ORDER.map(k=>by[k]||0), total=counts.reduce((a,b)=>a+b,0)||1;
+    chart('donut',{type:'doughnut',data:{labels:ORDER.map(lbl),datasets:[{data:counts,backgroundColor:ORDER.map(col),borderWidth:0}]},
+      options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},cutout:'58%'}});
+    const ai=s.avg_input||{v:0,a:0,t:0,act:0};
+    chart('radar',{type:'radar',data:{labels:['視覺','聽覺','文字','動作'],datasets:[{label:'平均',
+      data:[ai.v*100,ai.a*100,ai.t*100,ai.act*100],borderColor:'#14b8a6',backgroundColor:'#14b8a625',borderWidth:2}]},
+      options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:12}}}}}});
+    bars('archBars',ORDER.slice().sort((a,b)=>(by[b]||0)-(by[a]||0))
+      .map(k=>[lbl(k),col(k),by[k]||0,`${Math.round((by[k]||0)/total*100)}% · ${by[k]||0}`]));
+    const cb=s.combos||[];
+    $('combos').innerHTML=cb.length?cb.map(c=>{
+      const nm=c.combo.split(' + ').map(p=>lbl(p.trim())).join(' + ');
+      return `<div class="barlab" style="padding:4px 0;border-bottom:1px solid var(--line)"><span>${esc(nm)}</span><span class="muted">${c.count}</span></div>`;
+    }).join(''):'<p class="muted" style="font-size:13px">尚無資料</p>';
+    const tg=s.by_target||[];
+    bars('targets',tg.map(t=>[esc(t.target),'#14b8a6',t.count,t.count]));
+    const rec=s.recent||[];
+    $('sRecent').innerHTML=rec.length?rec.map(r=>
+      `<tr><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td>
+       <td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`).join('')
+      :'<tr><td colspan="4" class="muted">尚無資料</td></tr>';
+    applyFilter();
+  }catch(e){ $('err').textContent='⚠ 量表統計載入失敗：'+e.message; }
+}
+
+/* --- 分頁 2：訓練行為 --- */
+async function loadPlay(){
+  try{
+    const s=await rpc('play_stats');
+    if(s.__missing){
+      $('topCards').innerHTML='<p class="muted" style="font-size:13px">⚠ 找不到 <code>play_stats()</code>——請先在 Supabase 執行 <b>RUN_ME_2.sql</b>，訓練行為才會開始記錄。</p>';
       return;
     }
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const s=await res.json();
-    render(s);
-  }catch(e){
-    document.getElementById('err').textContent='⚠ 載入失敗：'+e.message+'（請確認已在 Supabase 跑過 public_vark_collector.sql）';
-  }
+    $('pOpens').textContent=s.total_opens??0; $('pDone').textContent=s.total_completes??0; $('p7d').textContent=s.last_7d??0;
+    const bm=s.by_mode||{}, mk=Object.keys(MODES).filter(k=>bm[k]);
+    chart('modeDonut',{type:'doughnut',data:{labels:mk.map(mlbl),datasets:[{data:mk.map(k=>bm[k]),backgroundColor:mk.map(mcol),borderWidth:0}]},
+      options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},cutout:'58%'}});
+    const bt=s.by_talent||{}, tk=ORDER.filter(k=>bt[k]);
+    chart('talentBar',{type:'bar',data:{labels:tk.map(k=>lbl(k).split(' ')[1]||k),datasets:[{data:tk.map(k=>bt[k]),backgroundColor:tk.map(col)}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:10}}}}}});
+    const top=s.top_cards||[];
+    bars('topCards',top.map(c=>[cname(c.id)+(c.avg!==null&&c.avg!==undefined?` <span class="muted">· 平均 ${c.avg}</span>`:''),
+      mcol(c.mode),c.opens,`開 ${c.opens} · 完成 ${c.completes}`]));
+    // 沒人練過的卡
+    const played=new Set(top.map(c=>c.id));
+    const cold=Object.keys(CARDS).filter(k=>!played.has(k));
+    $('coldCards').innerHTML=cold.length
+      ? cold.map(k=>`<span style="display:inline-block;font-size:12px;padding:3px 10px;border-radius:99px;background:#f3f4f6;color:var(--sub);margin:3px 4px 0 0">${cname(k)}</span>`).join('')
+        +`<p class="muted" style="font-size:12px;margin-top:8px">這 ${cold.length} 張沒人碰過——可能是入口太深、名字沒吸引力，或推薦沒排到。</p>`
+      : '<p class="muted" style="font-size:13px">🎉 22 張全部都有人練過</p>';
+    const rec=s.recent||[];
+    $('pRecent').innerHTML=rec.length?rec.map(r=>
+      `<tr><td>${cname(r.id)}</td><td class="muted">${r.event==='complete'?'✅ 完成':'▶ 開啟'}</td>
+       <td class="muted">${r.talent?lbl(r.talent):'—'}</td><td>${esc(r.score||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`).join('')
+      :'<tr><td colspan="5" class="muted">尚無資料——等有人去 play.html 練習就會出現</td></tr>';
+  }catch(e){ $('err').textContent='⚠ 訓練行為載入失敗：'+e.message; }
 }
 
-function render(s){
-  document.getElementById('kTotal').textContent=s.total??0;
-  document.getElementById('k7d').textContent=s.last_7d??0;
-  document.getElementById('kEeg').textContent=s.eeg_used??0;
-
-  const by=s.by_dominant||{};
-  const counts=ORDER.map(k=>by[k]||0);
-  const total=counts.reduce((a,b)=>a+b,0)||1;
-
-  // donut
-  if(donut)donut.destroy();
-  donut=new Chart(document.getElementById('donut'),{type:'doughnut',
-    data:{labels:ORDER.map(k=>LABELS[k]),datasets:[{data:counts,backgroundColor:ORDER.map(k=>COLORS[k]),borderWidth:0}]},
-    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:11}}}},cutout:'60%'}});
-
-  // type bars
-  document.getElementById('typeBars').innerHTML=ORDER.map(k=>{
-    const v=Math.round((by[k]||0)/total*100);
-    return `<div class="barrow"><div class="barlab"><span>${LABELS[k]}</span><span style="color:${COLORS[k]};font-weight:700">${v}% · ${by[k]||0}人</span></div><div class="bartrack"><div style="width:${v}%;background:${COLORS[k]}"></div></div></div>`;
-  }).join('');
-
-  // targets
-  const tg=s.by_target||[];
-  if(!tg.length){document.getElementById('targets').innerHTML='<p class="muted" style="font-size:13px">還沒有人填寫「在學什麼」。</p>';}
-  else{
-    const max=tg[0].count||1;
-    document.getElementById('targets').innerHTML=tg.map(t=>{
-      const w=Math.round(t.count/max*100);
-      return `<div class="barrow"><div class="barlab"><span>${esc(t.target)}</span><span class="muted">${t.count}</span></div><div class="bartrack"><div style="width:${w}%;background:var(--accent)"></div></div></div>`;
-    }).join('');
-  }
-
-  // recent
-  const rec=s.recent||[];
-  document.getElementById('recent').innerHTML=rec.length?rec.map(r=>{
-    const c=COLORS[r.dominant]||'#888';
-    return `<tr><td><span class="pill" style="background:${c}">${(LABELS[r.dominant]||r.dominant)}</span></td><td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`;
-  }).join(''):'<tr><td colspan="3" class="muted">尚無資料</td></tr>';
+/* --- 分頁 3：簡易 VARK --- */
+async function loadVark(){
+  try{
+    const s=await rpc('public_vark_stats');
+    if(s.__missing){ $('vTargets').innerHTML='<p class="muted" style="font-size:13px">⚠ 找不到 public_vark_stats()——這個舊量表的蒐集表可能沒建。</p>'; return; }
+    $('vTotal').textContent=s.total??0; $('v7d').textContent=s.last_7d??0; $('vEeg').textContent=s.eeg_used??0;
+    const by=s.by_dominant||{}, ks=Object.keys(VARKC).filter(k=>by[k]);
+    chart('vDonut',{type:'doughnut',data:{labels:ks.map(k=>VARKC[k][0]),datasets:[{data:ks.map(k=>by[k]),backgroundColor:ks.map(k=>VARKC[k][1]),borderWidth:0}]},
+      options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},cutout:'58%'}});
+    bars('vTargets',(s.by_target||[]).map(t=>[esc(t.target),'#14b8a6',t.count,t.count]));
+    const rec=s.recent||[];
+    $('vRecent').innerHTML=rec.length?rec.map(r=>
+      `<tr><td><b style="color:${(VARKC[r.dominant]||['','#888'])[1]}">${(VARKC[r.dominant]||[r.dominant])[0]}</b></td>
+       <td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`).join('')
+      :'<tr><td colspan="3" class="muted">尚無資料</td></tr>';
+  }catch(e){ /* 舊量表沒資料不算錯誤，靜默 */ }
 }
 
-function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function fmt(iso){const d=new Date(iso);const p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+/* ===== 匯出 ===== */
+function buildSelects(){
+  const s=$('fTop1'); if(s.options.length<=1)ORDER.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=lbl(k);s.appendChild(o);});
+  const e=$('fEx'); if(e.options.length<=1)Object.keys(CARDS).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=cname(k);e.appendChild(o);});
+}
+const pc=x=>Math.round((x||0)*100);
+function toCSV(head,rows){
+  const q=v=>{v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  return '﻿'+[head.join(',')].concat(rows.map(r=>r.map(q).join(','))).join('\r\n');
+}
+function download(csv,name){
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);
+}
+async function applyFilter(){
+  try{
+    const rows=await rpc('memory_scale_rows',{p_top1:$('fTop1').value||null,p_limit:5000});
+    if(rows.__missing)return;
+    $('fCount').textContent=`符合 ${rows.length} 筆`+($('fTop1').value?'　·　'+lbl($('fTop1').value):'')+(rows.length>50?'（預覽前 50，匯出含全部）':'');
+    $('rowsBody').innerHTML=rows.length?rows.slice(0,50).map(r=>
+      `<tr><td class="muted">${fmt(r.created_at)}</td><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td>
+       <td class="muted">${r.top2?lbl(r.top2):'—'}</td><td class="muted">${pc(r.in_v)}/${pc(r.in_a)}/${pc(r.in_t)}/${pc(r.in_act)}</td>
+       <td>${esc(r.learning_target||'—')}</td></tr>`).join('')
+      :'<tr><td colspan="5" class="muted">無資料</td></tr>';
+  }catch(e){ $('err').textContent='⚠ 篩選失敗：'+e.message; }
+}
+async function exportCSV(btn){
+  const t=btn.textContent; btn.disabled=true; btn.textContent='匯出中…';
+  try{
+    const rows=await rpc('memory_scale_rows',{p_top1:$('fTop1').value||null,p_limit:5000});
+    download(toCSV(['時間','主導天賦','次要天賦','視覺%','聽覺%','文字%','動作%','在學','來源'],
+      rows.map(r=>[new Date(r.created_at).toISOString(),lbl(r.top1),r.top2?lbl(r.top2):'',pc(r.in_v),pc(r.in_a),pc(r.in_t),pc(r.in_act),r.learning_target||'',r.source||''])),
+      'memory_scale_'+($('fTop1').value||'all')+'_'+new Date().toISOString().slice(0,10)+'.csv');
+  }catch(e){ $('err').textContent='⚠ 匯出失敗：'+e.message; }
+  btn.disabled=false; btn.textContent=t;
+}
+async function exportPlayCSV(btn){
+  const t=btn.textContent; btn.disabled=true; btn.textContent='匯出中…';
+  try{
+    const rows=await rpc('play_rows',{p_exercise:$('fEx').value||null,p_limit:5000});
+    if(rows.__missing){ $('err').textContent='⚠ 請先執行 RUN_ME_2.sql'; }
+    else download(toCSV(['時間','訓練卡','形式','天賦','動作','成績'],
+      rows.map(r=>[new Date(r.created_at).toISOString(),cname(r.exercise_id),mlbl(r.mode),r.talent?lbl(r.talent):'',r.event,r.score_t||''])),
+      'play_events_'+($('fEx').value||'all')+'_'+new Date().toISOString().slice(0,10)+'.csv');
+  }catch(e){ $('err').textContent='⚠ 匯出失敗：'+e.message; }
+  btn.disabled=false; btn.textContent=t;
+}
 
-load();
+/* ===== 初始化：session 有有效 token 就直接進 ===== */
+(function init(){
+  const saved=sessionStorage.getItem('ml_admin_token');
+  if(saved){ TOKEN=saved; isAdmin().then(ok=>{ if(ok===true)openDash(); else { TOKEN=null; sessionStorage.removeItem('ml_admin_token'); } }); }
+})();
 </script>
 </body>
 </html>

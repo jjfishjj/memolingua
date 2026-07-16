@@ -4,220 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>MemoLingua · 記憶天份量表 後台</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<title>MemoLingua · 後台已搬家</title>
+<!-- 這個後台已併入 admin.html（三分頁：記憶天賦量表 / 訓練行為 / 簡易 VARK）。
+     保留這頁做轉址，避免舊書籤失效。 -->
+<meta http-equiv="refresh" content="0; url=admin.html">
+<script>location.replace('admin.html');</script>
 <style>
-  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink)}
-  .wrap{max-width:780px;margin:0 auto;padding:24px 18px 60px}
-  h1{font-size:22px;margin:0 0 2px}.muted{color:var(--sub)}
-  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
-  .card h2{font-size:15px;margin:0 0 12px}
-  .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
-  .kpi .b{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
-  .kpi .n{font-size:26px;font-weight:800;color:var(--primary)}.kpi .l{font-size:11px;color:var(--sub);margin-top:2px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
-  .barrow{margin-bottom:9px}.barlab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
-  .bartrack{height:9px;background:#eef0f3;border-radius:99px;overflow:hidden}.bartrack>div{height:100%;border-radius:99px;transition:.5s}
-  table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}th{color:var(--sub);font-weight:600;font-size:12px}
-  .reload{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
-  .err{color:#ef4444;font-size:13px;margin-top:10px}
-  .tin{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;outline:none;margin-bottom:10px}
-  /* login gate */
-  #gate{position:fixed;inset:0;background:var(--bg);z-index:99;display:flex;align-items:center;justify-content:center;padding:20px}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:#f3f8f7;color:#0e3a36;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
+  a{color:#14b8a6;font-weight:700}
 </style>
 </head>
 <body>
-
-<!-- 🔐 管理員登入閘門 -->
-<div id="gate">
-  <div class="card" style="max-width:360px;width:100%;margin:0">
-    <div style="text-align:center"><div style="font-size:38px">🔐</div><h1 style="margin-top:6px">後台登入</h1>
-      <p class="muted" style="font-size:13px">僅限管理員。請用你的 MemoLingua 帳號登入。</p></div>
-    <input id="gEmail" class="tin" type="email" placeholder="Email" style="margin-top:14px">
-    <input id="gPw" class="tin" type="password" placeholder="密碼" onkeydown="if(event.key==='Enter')adminLogin(this)">
-    <button class="reload" style="width:100%;padding:12px" onclick="adminLogin(this)">登入</button>
-    <div id="gMsg" class="err" style="text-align:center"></div>
+  <div>
+    <div style="font-size:38px">📦</div>
+    <h1 style="font-size:19px">後台已合併</h1>
+    <p style="color:#6b7280;font-size:14px">量表統計與訓練行為現在都在同一個後台。<br>正在帶你過去…</p>
+    <p><a href="admin.html">如果沒有自動跳轉，點這裡 →</a></p>
   </div>
-</div>
-
-<div class="wrap">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div><h1>🧠 記憶天份量表 後台</h1><p class="muted" style="font-size:13px;margin:2px 0 0">僅彙總，無個資 · 🔒 管理員專用</p></div>
-    <button class="reload" style="margin-left:auto" onclick="load()">↻ 重新整理</button>
-    <button class="reload" style="background:#fff;color:var(--sub);border:1px solid var(--line)" onclick="logout()">登出</button>
-  </div>
-
-  <div class="kpi">
-    <div class="b"><div class="n" id="kTotal">—</div><div class="l">總填寫人數</div></div>
-    <div class="b"><div class="n" id="k7d">—</div><div class="l">近 7 天</div></div>
-  </div>
-
-  <div class="grid2">
-    <div class="card"><h2>主導天份分佈</h2><canvas id="donut" height="210"></canvas></div>
-    <div class="card"><h2>平均輸入偏好</h2><canvas id="radar" height="210"></canvas></div>
-  </div>
-
-  <div class="card"><h2>八大天份佔比</h2><div id="archBars"></div></div>
-  <div class="card"><h2>熱門組合 Top 12</h2><div id="combos"></div></div>
-  <div class="card"><h2>大家在學什麼？ Top 20</h2><div id="targets"><p class="muted" style="font-size:13px">載入中…</p></div></div>
-  <div class="card"><h2>最近填寫</h2><table><thead><tr><th>主導</th><th>次要</th><th>在學</th><th>時間</th></tr></thead><tbody id="recent"></tbody></table></div>
-
-  <!-- ④ 機構版：分流 + 匯出 -->
-  <div class="card">
-    <h2>🏫 機構分流 · 資料匯出</h2>
-    <p class="muted" style="font-size:12px;margin:-6px 0 12px">依記憶天份篩選逐筆資料，匯出 CSV 做學生分流／課程推薦。不含 email（個資不外流）。</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select id="fTop1" style="flex:1;min-width:160px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;font-size:14px">
-        <option value="">全部天份</option>
-      </select>
-      <button class="reload" onclick="applyFilter()">套用篩選</button>
-      <button class="reload" style="background:var(--accent)" onclick="exportCSV(this)">⬇ 匯出 CSV</button>
-    </div>
-    <p class="muted" id="fCount" style="font-size:13px;margin-top:10px"></p>
-    <div style="overflow-x:auto;margin-top:6px">
-      <table><thead><tr><th>時間</th><th>主導</th><th>次要</th><th>視/聽/文/動</th><th>在學</th></tr></thead><tbody id="rowsBody"></tbody></table>
-    </div>
-  </div>
-
-  <p id="err" class="err"></p>
-</div>
-
-<script>
-const SUPA_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co';
-const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
-const ARCH={img:['💠 影像造景師','#6366F1'],snd:['🎧 旋律獵人','#EC4899'],txt:['📑 邏輯解密者','#10B981'],act:['🎯 戲劇行動派','#F59E0B'],soc:['🗣️ 圈粉教學家','#06b6d4'],sys:['📈 節奏工程師','#8b5cf6'],cre:['✨ 腦洞煉金師','#f43f5e'],biz:['💼 目標狙擊手','#0ea5e9']};
-const ORDER=['img','snd','txt','act','soc','sys','cre','biz'];
-let donut,radar,TOKEN=null;
-
-/* ===== 登入 / 權限 ===== */
-function H(){return {apikey:SUPA_ANON,Authorization:'Bearer '+(TOKEN||SUPA_ANON),'Content-Type':'application/json'};}
-function gmsg(t){document.getElementById('gMsg').textContent=t||'';}
-async function isAdmin(){
-  // 回傳 true / false / 'nosetup'（is_admin RPC 不存在 = admin_lockdown.sql 還沒跑）
-  try{
-    const r=await fetch(SUPA_URL+'/rest/v1/rpc/is_admin',{method:'POST',headers:H(),body:'{}'});
-    if(r.status===404)return 'nosetup';
-    if(!r.ok)return false;
-    return (await r.json())===true;
-  }catch(e){return false;}
-}
-function openDash(){document.getElementById('gate').style.display='none';buildFilter();applyFilter();load();}
-async function adminLogin(btn){
-  const email=(document.getElementById('gEmail').value||'').trim();
-  const pw=document.getElementById('gPw').value||'';
-  if(!email||!pw){gmsg('請輸入帳號密碼');return;}
-  const t=btn.textContent;btn.disabled=true;btn.textContent='登入中…';gmsg('');
-  try{
-    const res=await fetch(SUPA_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SUPA_ANON,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
-    const j=await res.json();
-    if(!res.ok||!j.access_token)throw new Error(j.error_description||j.msg||'登入失敗');
-    TOKEN=j.access_token;
-    const ok=await isAdmin();
-    if(ok==='nosetup'){TOKEN=null;throw new Error('後台尚未初始化：請先在 Supabase SQL Editor 執行 admin_lockdown.sql，並把你的帳號加入 admins。');}
-    if(ok!==true){TOKEN=null;throw new Error('此帳號不是管理員，無權限進入。');}
-    sessionStorage.setItem('ml_admin_token',TOKEN);
-    openDash();
-  }catch(e){gmsg('⚠ '+e.message);btn.disabled=false;btn.textContent=t;}
-}
-function logout(){TOKEN=null;sessionStorage.removeItem('ml_admin_token');location.reload();}
-
-function lbl(k){return (ARCH[k]||[k])[0];}
-function col(k){return (ARCH[k]||['',''])[1]||'#888';}
-function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function fmt(iso){const d=new Date(iso),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
-const pc=x=>Math.round((x||0)*100);
-
-async function load(){
-  document.getElementById('err').textContent='';
-  try{
-    const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_stats',{method:'POST',headers:H(),body:'{}'});
-    if(res.status===401||res.status===403)throw new Error('權限不足或登入過期，請重新登入。');
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    render(await res.json());
-  }catch(e){document.getElementById('err').textContent='⚠ 載入失敗：'+e.message;}
-}
-function render(s){
-  document.getElementById('kTotal').textContent=s.total??0;
-  document.getElementById('k7d').textContent=s.last_7d??0;
-  const by=s.by_top1||{};const counts=ORDER.map(k=>by[k]||0);const total=counts.reduce((a,b)=>a+b,0)||1;
-  if(donut)donut.destroy();
-  donut=new Chart(document.getElementById('donut'),{type:'doughnut',
-    data:{labels:ORDER.map(lbl),datasets:[{data:counts,backgroundColor:ORDER.map(col),borderWidth:0}]},
-    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},cutout:'58%'}});
-  const ai=s.avg_input||{v:0,a:0,t:0,act:0};
-  if(radar)radar.destroy();
-  radar=new Chart(document.getElementById('radar'),{type:'radar',
-    data:{labels:['視覺','聽覺','文字','動作'],datasets:[{label:'平均',data:[ai.v*100,ai.a*100,ai.t*100,ai.act*100],borderColor:'#14b8a6',backgroundColor:'#14b8a625',borderWidth:2}]},
-    options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:12}}}}}});
-  const max=Math.max(...counts)||1;
-  document.getElementById('archBars').innerHTML=ORDER.slice().sort((a,b)=>(by[b]||0)-(by[a]||0)).map(k=>{
-    const v=Math.round((by[k]||0)/total*100);
-    return `<div class="barrow"><div class="barlab"><span>${lbl(k)}</span><span style="color:${col(k)};font-weight:700">${v}% · ${by[k]||0}</span></div><div class="bartrack"><div style="width:${v}%;background:${col(k)}"></div></div></div>`;
-  }).join('');
-  const cb=s.combos||[];
-  document.getElementById('combos').innerHTML=cb.length?cb.map(c=>{
-    const nm=c.combo.split(' + ').map(p=>lbl(p.trim())).join(' + ');
-    return `<div class="barlab" style="padding:4px 0;border-bottom:1px solid var(--line)"><span>${esc(nm)}</span><span class="muted">${c.count}</span></div>`;
-  }).join(''):'<p class="muted" style="font-size:13px">尚無資料</p>';
-  const tg=s.by_target||[];const tmax=tg.length?tg[0].count:1;
-  document.getElementById('targets').innerHTML=tg.length?tg.map(t=>{
-    const w=Math.round(t.count/tmax*100);
-    return `<div class="barrow"><div class="barlab"><span>${esc(t.target)}</span><span class="muted">${t.count}</span></div><div class="bartrack"><div style="width:${w}%;background:var(--accent)"></div></div></div>`;
-  }).join(''):'<p class="muted" style="font-size:13px">還沒有人填「在學什麼」。</p>';
-  const rec=s.recent||[];
-  document.getElementById('recent').innerHTML=rec.length?rec.map(r=>
-    `<tr><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td><td>${esc(r.target||'—')}</td><td class="muted">${fmt(r.at)}</td></tr>`
-  ).join(''):'<tr><td colspan="4" class="muted">尚無資料</td></tr>';
-}
-
-/* ④ 機構分流 + CSV 匯出 */
-function buildFilter(){const sel=document.getElementById('fTop1');if(sel.options.length>1)return;ORDER.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=lbl(k);sel.appendChild(o);});}
-async function fetchRows(top1){
-  const res=await fetch(SUPA_URL+'/rest/v1/rpc/memory_scale_rows',{method:'POST',headers:H(),body:JSON.stringify({p_top1:top1||null,p_limit:5000})});
-  if(res.status===401||res.status===403)throw new Error('權限不足或登入過期');
-  if(!res.ok)throw new Error('HTTP '+res.status+'（請先跑 admin_lockdown.sql）');
-  return await res.json();
-}
-async function applyFilter(){
-  document.getElementById('err').textContent='';
-  const top1=document.getElementById('fTop1').value;
-  try{
-    const rows=await fetchRows(top1);
-    let note='符合 '+rows.length+' 筆'+(top1?'　·　'+lbl(top1):'');
-    if(rows.length>50)note+='（預覽前 50 筆，匯出含全部）';
-    document.getElementById('fCount').textContent=note;
-    document.getElementById('rowsBody').innerHTML=rows.slice(0,50).map(r=>
-      `<tr><td class="muted">${fmt(r.created_at)}</td><td><b style="color:${col(r.top1)}">${lbl(r.top1)}</b></td><td class="muted">${r.top2?lbl(r.top2):'—'}</td><td class="muted">${pc(r.in_v)}/${pc(r.in_a)}/${pc(r.in_t)}/${pc(r.in_act)}</td><td>${esc(r.learning_target||'—')}</td></tr>`
-    ).join('')||'<tr><td colspan="5" class="muted">無資料</td></tr>';
-  }catch(e){document.getElementById('err').textContent='⚠ 篩選失敗：'+e.message;}
-}
-async function exportCSV(btn){
-  document.getElementById('err').textContent='';
-  const top1=document.getElementById('fTop1').value;const t=btn.textContent;btn.disabled=true;btn.textContent='匯出中…';
-  try{
-    const rows=await fetchRows(top1);
-    const head=['時間','主導天份','次要天份','視覺%','聽覺%','文字%','動作%','在學','來源'];
-    const q=v=>{v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-    const lines=[head.join(',')];
-    rows.forEach(function(r){
-      lines.push([new Date(r.created_at).toISOString(),(ARCH[r.top1]||[r.top1])[0],r.top2?(ARCH[r.top2]||[r.top2])[0]:'',pc(r.in_v),pc(r.in_a),pc(r.in_t),pc(r.in_act),r.learning_target||'',r.source||''].map(q).join(','));
-    });
-    const csv='﻿'+lines.join('\r\n');
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='memory_scale_'+(top1||'all')+'_'+new Date().toISOString().slice(0,10)+'.csv';
-    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-    btn.disabled=false;btn.textContent=t;
-  }catch(e){btn.disabled=false;btn.textContent=t;document.getElementById('err').textContent='⚠ 匯出失敗：'+e.message;}
-}
-
-/* 初始化：若 session 有有效 token 且為管理員，直接進；否則顯示登入 */
-(function init(){
-  const saved=sessionStorage.getItem('ml_admin_token');
-  if(saved){TOKEN=saved;isAdmin().then(ok=>{if(ok===true)openDash();else{TOKEN=null;sessionStorage.removeItem('ml_admin_token');}});}
-})();
-</script>
 </body>
 </html>

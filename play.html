@@ -146,6 +146,7 @@ const MODES={
  similar:{label:'相似事物',emoji:'🔍',color:'#10b981'},
  tool:{label:'結構工具',emoji:'🛠️',color:'#64748b'}};
 
+const SUPA_URL_REST='https://ycgjzrvfzaqaicvdtagq.supabase.co/rest/v1';
 const CHAT_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co/functions/v1/chat';
 const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
 const RETRYABLE=[429,500,502,503,504];
@@ -854,12 +855,25 @@ function currentTalent(){
 /* ================= 練習紀錄（localStorage） ================= */
 function loadLog(){ try{ return JSON.parse(localStorage.getItem(LS_LOG)||'{}'); }catch(e){ return {}; } }
 function saveLog(l){ try{ localStorage.setItem(LS_LOG,JSON.stringify(l)); }catch(e){} }
+// 匿名回報訓練行為給後台（fire-and-forget：失敗絕不影響使用者練習）
+// 只送卡片 id / 形式 / 天賦 / 分數——沒有 email、姓名或任何個資。
+function logEvent(id,event,score){
+  try{
+    const e=EX.find(x=>x.id===id);
+    fetch(SUPA_URL_REST+'/play_events',{method:'POST',
+      headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({exercise_id:id,mode:e?e.mode:null,talent:currentTalent(),
+        event,score_v:score?score.v:null,score_t:score?score.t:null,source:'github-pages'})
+    }).catch(()=>{});   // 後台還沒建表也無所謂，靜默忽略
+  }catch(e){}
+}
 // 記一次練習：次數 +1、更新最後練習時間、保留最佳成績
 function recordPlay(id,score){
   const l=loadLog(); const r=l[id]||{n:0};
   r.n++; r.last=Date.now();
   if(score&&(!r.best||score.v>r.best.v)) r.best={v:score.v,t:score.t};
   l[id]=r; saveLog(l); refreshProgress();
+  logEvent(id,score?'complete':'open',score);
 }
 window.recordPlay=recordPlay;
 function refreshProgress(){
