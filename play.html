@@ -91,6 +91,19 @@
   .chainitem{display:inline-block;background:#e6faf6;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;font-size:12.5px;margin:3px}
   .arrow{color:var(--sub);margin:0 2px}
   .cta{display:block;text-align:center;padding:13px;border-radius:14px;background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:500;font-size:14px;text-decoration:none;margin-top:10px}
+  /* 天賦推薦 + 進度 */
+  .tbanner{border-radius:16px;padding:15px;color:#fff;margin-top:14px}
+  .tbanner .h{display:flex;align-items:center;gap:9px}
+  .tbanner .h b{font-size:16px}
+  .tbanner .why{font-size:12.5px;opacity:.92;margin-top:4px}
+  .prog{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px;font-size:13px}
+  .prog .timerbar{background:#eef0f3}
+  .sechead{font-size:13px;font-weight:800;color:var(--primary);margin:16px 0 0}
+  .gcard.rec{border-color:var(--accent);background:#f5fffd}
+  .crown{position:absolute;top:8px;right:9px;font-size:14px}
+  .gcard{position:relative}
+  .playedtag{display:inline-block;font-size:10px;color:var(--sub);margin-top:4px}
+  .setup-nudge{border:1px dashed var(--line);border-radius:14px;padding:13px 15px;margin-top:14px;font-size:13px;color:var(--sub)}
 </style>
 </head>
 <body>
@@ -103,6 +116,8 @@
       <h1>訓練場：實作版</h1>
       <p class="muted">22 張訓練卡全部做成真的能玩的版本。<br>點任一張直接開始，不是規格文件。</p>
     </div>
+    <div id="talentBanner"></div>
+    <div class="prog" id="progress"></div>
     <div class="modeRow" id="modeRow"></div>
     <div class="grid" id="grid"></div>
     <a class="cta" href="gym.html">🏋️ 看每張卡的完整訓練設計（gym）</a>
@@ -490,6 +505,7 @@ const EX=[
     }else{
       $('chk').onclick=()=>{
         const a=$('ans').value.trim();
+        if(a===num)recordPlay('numcode',{v:1,t:'答對 6 位數'});
         $('res').innerHTML=(a===num)
           ? `<div class="result ok">✅ 完全正確！<b>${num}</b> —— 故事法有效，你根本沒死背數字。</div><div class="row" style="margin-top:8px"><button class="btn ghost" onclick="window.__ncNext()">🔄 再來一組</button></div>`
           : `<div class="result no">❌ 你答 ${esc(a)}，正確是 <b>${num}</b>（${imgs(num)}）<br><span class="muted">故事不夠誇張就容易漏——畫面越荒謬越好記。</span></div><div class="row" style="margin-top:8px"><button class="btn ghost" onclick="window.__ncNext()">🔄 再來一組</button></div>`;
@@ -511,6 +527,7 @@ const EX=[
     if(st.round>=st.total){
       $('area').innerHTML=`<div class="word">🏁 ${st.score} / ${st.total}</div>
         <p class="muted" style="text-align:center">${st.score>=6?'手勢反應超快！身體已經記住這些詞了。':'再玩一次，讓肌肉記憶接手。'}</p>`;
+      recordPlay('gesture',{v:st.score,t:st.score+'/'+st.total});
       $('start').disabled=false; return;
     }
     st.round++;
@@ -576,7 +593,7 @@ const EX=[
       el.querySelectorAll('.gopt').forEach(b=>b.onclick=()=>{
         if(b.dataset.v===placed[spotI])score++; else beep(220);
         walkIdx++;
-        if(walkIdx>=order.length){ phase='done'; }
+        if(walkIdx>=order.length){ phase='done'; recordPlay('palace',{v:score,t:score+'/'+order.length}); }
         draw(); });
     }else{
       el.innerHTML=`<div class="word">🏁 ${score} / ${order.length}</div>
@@ -599,6 +616,7 @@ const EX=[
       el.innerHTML=`<div class="word">🏁 ${st.score} / ${st.total}</div>
         <p class="muted" style="text-align:center">${st.score>=5?'耳朵很準！':'多聽慢速版，抓長短母音的差異。'}</p>
         <div class="row" style="justify-content:center;margin-top:10px"><button class="btn accent" id="again">🔄 再一輪</button></div>`;
+      recordPlay('minimal',{v:st.score,t:st.score+'/'+st.total});
       $('again').onclick=()=>{ st={round:0,total:6,score:0}; draw(); }; return;
     }
     st.round++; st.pair=pick(PAIRS); st.target=st.pair[Math.random()<.5?0:1];
@@ -802,6 +820,61 @@ const EX=[
 window.__pickTopic=()=>pick(TOPICS);
 window.__pickMeme=()=>pick(MEME_ITEMS);
 
+/* ================= 天賦 → 推薦訓練卡 ================= */
+// 8 種記憶天賦各推薦 5 張最對症的卡（第一張是最該先練的）。
+// key 與 scale.html 的 ARCH 一致，透過 ?talent=xxx 帶進來。
+const TALENTS={
+ img:{name:'影像造景師',emoji:'💠',color:'#6366F1',rec:['palace','imgremix','highlight','numcode','chain'],
+   why:'你的大腦靠畫面記憶——先把知識變成可以「看見」的東西。'},
+ snd:{name:'旋律獵人',emoji:'🎧',color:'#EC4899',rec:['rap','minimal','podcast','meme','story'],
+   why:'你的大腦靠聲音記憶——先讓耳朵和節奏帶著你記。'},
+ txt:{name:'邏輯解密者',emoji:'📑',color:'#10B981',rec:['root','chain','bug','table','feynman'],
+   why:'你的大腦要先「懂為什麼」——先拆結構、找規則，再談記憶。'},
+ act:{name:'戲劇行動派',emoji:'🎯',color:'#F59E0B',rec:['rp','hook','impromptu','gesture','pomodoro'],
+   why:'你的大腦靠做過一次記住——直接進場景，別先背表。'},
+ soc:{name:'圈粉教學家',emoji:'🗣️',color:'#06b6d4',rec:['feynman','podcast','impromptu','bug','story'],
+   why:'你的大腦在「講出去」的瞬間才真的記住——先找對象輸出。'},
+ sys:{name:'節奏工程師',emoji:'📈',color:'#8b5cf6',rec:['pomodoro','numcode','table','minimal','fixloop'],
+   why:'你的大腦靠規律累積——先把節奏和系統建起來，複利自己會滾。'},
+ cre:{name:'腦洞煉金師',emoji:'✨',color:'#f43f5e',rec:['imgremix','meme','web','story','palace'],
+   why:'你的大腦靠聯想記憶——越荒謬的連結，記得越牢。'},
+ biz:{name:'目標狙擊手',emoji:'💼',color:'#0ea5e9',rec:['impromptu','fixloop','podcast','rp','bug'],
+   why:'你的大腦要看到靶心才開火——每次練習都要有可驗收的成果。'}};
+
+// 從網址帶進來的天賦（scale.html 報告頁的「開始專屬訓練」會帶 ?talent=）
+// 記進 localStorage，之後直接開 play.html 也能延續推薦。
+const LS_TALENT='ml_talent', LS_LOG='ml_play_log';
+function currentTalent(){
+  const p=new URLSearchParams(location.search).get('talent');
+  if(p&&TALENTS[p]){ try{localStorage.setItem(LS_TALENT,p);}catch(e){} return p; }
+  try{ const s=localStorage.getItem(LS_TALENT); if(s&&TALENTS[s])return s; }catch(e){}
+  return null;
+}
+
+/* ================= 練習紀錄（localStorage） ================= */
+function loadLog(){ try{ return JSON.parse(localStorage.getItem(LS_LOG)||'{}'); }catch(e){ return {}; } }
+function saveLog(l){ try{ localStorage.setItem(LS_LOG,JSON.stringify(l)); }catch(e){} }
+// 記一次練習：次數 +1、更新最後練習時間、保留最佳成績
+function recordPlay(id,score){
+  const l=loadLog(); const r=l[id]||{n:0};
+  r.n++; r.last=Date.now();
+  if(score&&(!r.best||score.v>r.best.v)) r.best={v:score.v,t:score.t};
+  l[id]=r; saveLog(l); refreshProgress();
+}
+window.recordPlay=recordPlay;
+function refreshProgress(){
+  const l=loadLog(); const done=EX.filter(e=>l[e.id]).length;
+  const el=$('progress'); if(!el)return;
+  const pct=Math.round(done/EX.length*100);
+  el.innerHTML=`<div class="row" style="justify-content:space-between">
+      <span><b>已練 ${done} / ${EX.length}</b> 張</span>
+      <span class="muted">${pct}%</span></div>
+    <div class="timerbar" style="margin:6px 0 0"><div style="width:${pct}%"></div></div>
+    ${done?`<div class="muted" style="margin-top:6px">${
+      EX.filter(e=>l[e.id]&&l[e.id].best).map(e=>`${e.ic} ${e.n} 最佳 ${l[e.id].best.t}`).join('　·　')||'繼續練，成績會記在這裡'
+    }</div>`:'<div class="muted" style="margin-top:6px">練過的卡會記錄在這裡，成績會留下最佳紀錄</div>'}`;
+}
+
 /* ================= 選單 / 路由 ================= */
 let activeMode='all';
 function renderModes(){
@@ -812,11 +885,45 @@ function renderModes(){
   }).join('');
   $('modeRow').querySelectorAll('.mchip').forEach(b=>b.onclick=()=>{ activeMode=b.dataset.k; renderModes(); renderGrid(); });
 }
+function cardHTML(e,isRec){
+  const m=MODES[e.mode], l=loadLog(), r=l[e.id];
+  return `<button class="gcard${isRec?' rec':''}" data-id="${e.id}">
+    ${isRec?'<span class="crown">👑</span>':''}
+    <span class="ic">${e.ic}</span><b>${e.n}</b>
+    <span class="badge" style="background:${m.color}">${m.emoji} ${m.label}</span>
+    ${r?`<span class="playedtag">✓ 練過 ${r.n} 次${r.best?' · 最佳 '+r.best.t:''}</span>`:''}
+  </button>`;
+}
+function renderTalent(){
+  const t=currentTalent(), box=$('talentBanner');
+  if(!t){
+    box.innerHTML=`<div class="setup-nudge">🎯 還不知道自己是哪型？
+      <a href="scale.html" style="color:var(--accent);font-weight:700">先做 2 分鐘記憶天賦測驗 →</a>
+      測完這裡會自動推薦最適合你的訓練卡。</div>`;
+    return;
+  }
+  const T=TALENTS[t];
+  box.innerHTML=`<div class="tbanner" style="background:linear-gradient(135deg,${T.color}cc,${T.color})">
+    <div class="h"><span style="font-size:26px">${T.emoji}</span>
+      <div><b>你的天賦：${T.name}</b><div class="why">${T.why}</div></div></div>
+  </div>`;
+}
 function renderGrid(){
+  const t=currentTalent();
+  const recIds=t?TALENTS[t].rec:[];
   const list=activeMode==='all'?EX:EX.filter(e=>e.mode===activeMode);
-  $('grid').innerHTML=list.map(e=>{ const m=MODES[e.mode];
-    return `<button class="gcard" data-id="${e.id}"><span class="ic">${e.ic}</span><b>${e.n}</b>
-      <span class="badge" style="background:${m.color}">${m.emoji} ${m.label}</span></button>`; }).join('');
+  let html='';
+  // 只在「全部」時把推薦卡拉到最上面，避免跟形式篩選打架
+  if(t&&activeMode==='all'){
+    const recs=recIds.map(id=>EX.find(e=>e.id===id)).filter(Boolean);
+    html+=`<div class="sechead" style="grid-column:1/-1">👑 為你推薦（照順序練最有效）</div>`;
+    html+=recs.map(e=>cardHTML(e,true)).join('');
+    html+=`<div class="sechead" style="grid-column:1/-1">其餘訓練卡</div>`;
+    html+=list.filter(e=>!recIds.includes(e.id)).map(e=>cardHTML(e,false)).join('');
+  }else{
+    html=list.map(e=>cardHTML(e,recIds.includes(e.id))).join('');
+  }
+  $('grid').innerHTML=html;
   $('grid').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>open(b.dataset.id));
 }
 function open(id){
@@ -826,6 +933,7 @@ function open(id){
   $('pBadge').textContent=m.emoji+' '+m.label; $('pBadge').style.background=m.color;
   $('gridView').style.display='none'; $('playView').style.display='block';
   $('pBody').innerHTML=''; e.mount($('pBody'));
+  recordPlay(id);                       // 開啟即記一次；有計分的卡完成時會再存最佳成績
   window.scrollTo(0,0); location.hash=id;
 }
 function backToGrid(){
@@ -833,9 +941,15 @@ function backToGrid(){
   $('pBody').innerHTML='';                       // 卸載，順便停掉裡面的 timer/串流 UI
   $('playView').style.display='none'; $('gridView').style.display='block';
   location.hash=''; window.scrollTo(0,0);
+  renderTalent(); refreshProgress(); renderGrid();  // 回到選單時刷新紀錄
 }
-renderModes(); renderGrid();
+renderTalent(); renderModes(); renderGrid(); refreshProgress();
 if(location.hash){ const id=location.hash.slice(1); if(EX.find(x=>x.id===id))open(id); }
+// 支援從課表/報告用 #id 直接開卡（同頁換 hash 不會重載，所以要監聽）
+window.addEventListener('hashchange',()=>{
+  const id=location.hash.slice(1);
+  if(id&&EX.find(x=>x.id===id))open(id); else if(!id)backToGrid();
+});
 </script>
 </body>
 </html>

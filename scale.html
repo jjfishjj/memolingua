@@ -125,6 +125,8 @@
     <button class="btn" onclick="downloadPDF(this)">📄 下載完整報告 PDF</button>
     <a id="appLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">
       <div class="btn accent">🚀 到 App 用你的天份開始學 →</div></a>
+    <a id="playLink" href="play.html" style="text-decoration:none">
+      <div class="btn">🎮 開始你的專屬訓練（22 張訓練卡，已為你排序）→</div></a>
     <a id="bookLink" href="training.html" style="text-decoration:none">
       <div class="btn ghost">📖 查看你的《天賦訓練圖鑑》完整版 →</div></a>
 
@@ -363,6 +365,7 @@ function renderReport(sc,top1,top2){
   const g=GENIUS[top1]||['explorer','kinesthetic'];
   $('appLink').href=APP_URL+'/practice?genius='+g[0]+'&vark='+g[1]+'&from=scale';
   $('bookLink').href='training.html#'+top1;
+  $('playLink').href='play.html?talent='+top1;   // 帶天賦進訓練場 → 置頂顯示專屬推薦
 }
 
 /* ===== 下載 PDF 個人報告 ===== */

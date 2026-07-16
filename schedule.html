@@ -38,7 +38,8 @@
   .day .dhead{display:flex;align-items:baseline;gap:8px}
   .day .dhead b{font-size:14px}
   .day .dhead span{font-size:12px;color:var(--sub);margin-left:auto}
-  .task{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f3f4f6;font-size:13px}
+  .task{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f3f4f6;font-size:13px;transition:.12s}
+  a.task:hover{background:#f4faf9;padding-left:4px}
   .task:first-of-type{border-top:none;margin-top:6px}
   .task .m{font-size:10px;padding:1px 7px;border-radius:99px;color:#fff;flex-shrink:0}
   .task .d{margin-left:auto;color:var(--sub);font-size:12px;flex-shrink:0}
@@ -116,23 +117,24 @@ const METHOD_CARDS=[
   note:'固定路線可以無限次重複使用：這批內容背熟了，就把路線「清空」放下一批新知識。想要更炫的互動版可以玩學習訓練場裡的「記憶宮殿 3D 線上版」卡。'}}
 ];
 
-/* 22 張 Learning Gym 卡的排程用精簡資料（名稱/圖示/形式/分鐘數）
-   完整訓練設計請見 gym.html，本頁不重複列出，只負責排課表。 */
+/* 22 張 Learning Gym 卡的排程用精簡資料 [id, 名稱, 圖示, 形式, 分鐘數]
+   完整訓練設計見 gym.html；id 對應 play.html 的實作版，課表每一項可直接點進去玩。 */
 const GYM_POOL=[
- ['情境鉤子卡','📍','ai',7],['資料轉表格訓練','📊','tool',8],['聲音跟讀卡','🎧','sound',6],
- ['情感故事卡','📖','ai',8],['概念織網卡','🕸️','card',7],['費曼原理卡','🧑‍🏫','ai',9],
- ['即時輸出卡','⚡','ai',5],['記憶宮殿 3D 線上版','🏛️','game',8],['AI 圖像生成變形記','🎨','card',7],
- ['螢光色階與符號筆記術','🖍️','tool',6],['Rap 節奏單字覆誦','🎤','sound',5],['Podcast 說書人任務','🎙️','ai',8],
- ['諧音迷因與口訣創作家','😂','ai',6],['情境式 AI 劇本殺','🎭','ai',9],['微動作記憶法指南','🤚','game',5],
- ['番茄鐘走讀與空間轉換術','🍅','tool',6],['字根字首拆解樹','🧩','card',7],['知識地圖連連看','🗺️','card',9],
- ['AI 挑錯與除錯專家任務','🐛','ai',8],['數字轉碼訓練','🔢','card',6],['相似概念拆解','👯','similar',7],
- ['錯誤修正回路','🔁','ai',5],
+ ['hook','情境鉤子卡','📍','ai',7],['table','資料轉表格訓練','📊','tool',8],['minimal','聲音跟讀卡','🎧','sound',6],
+ ['story','情感故事卡','📖','ai',8],['web','概念織網卡','🕸️','card',7],['feynman','費曼原理卡','🧑‍🏫','ai',9],
+ ['impromptu','即時輸出卡','⚡','ai',5],['palace','記憶宮殿 3D 線上版','🏛️','game',8],['imgremix','AI 圖像生成變形記','🎨','card',7],
+ ['highlight','螢光色階與符號筆記術','🖍️','tool',6],['rap','Rap 節奏單字覆誦','🎤','sound',5],['podcast','Podcast 說書人任務','🎙️','ai',8],
+ ['meme','諧音迷因與口訣創作家','😂','ai',6],['rp','情境式 AI 劇本殺','🎭','ai',9],['gesture','微動作記憶法指南','🤚','game',5],
+ ['pomodoro','番茄鐘走讀與空間轉換術','🍅','tool',6],['root','字根字首拆解樹','🧩','card',7],['chain','知識地圖連連看','🗺️','card',9],
+ ['bug','AI 挑錯與除錯專家任務','🐛','ai',8],['numcode','數字轉碼訓練','🔢','card',6],['twin','相似概念拆解','👯','similar',7],
+ ['fixloop','錯誤修正回路','🔁','ai',5],
 ];
 // 完整訓練清單 = 22 張 Gym 卡 + 2 個核心技法（複習節奏以 5 分鐘計入排程）
+// 兩個核心技法各自對應到實作版裡練同一套方法的那張卡
 const POOL=[
-  ...GYM_POOL.map(([n,ic,mode,min])=>({n,ic,mode,min})),
-  {n:'數字轉碼法（複習）',ic:'🧮',mode:'core',min:5},
-  {n:'空間定位法（複習）',ic:'🧭',mode:'core',min:5},
+  ...GYM_POOL.map(([id,n,ic,mode,min])=>({id,n,ic,mode,min})),
+  {id:'numcode',n:'數字轉碼法（複習）',ic:'🧮',mode:'core',min:5},
+  {id:'palace',n:'空間定位法（複習）',ic:'🧭',mode:'core',min:5},
 ];
 
 const DAYS=['週一','週二','週三','週四','週五','週六','週日'];
@@ -199,27 +201,28 @@ function generate(reshuffle=false){
   renderCalendar();
 }
 
+// 每一項都連到 play.html 的對應訓練卡，點了直接開始練
+function taskRow(it){
+  const m=MODES[it.mode];
+  return `<a class="task" href="play.html#${it.id}" style="text-decoration:none;color:inherit">
+    <span>${it.ic}</span><span>${it.n}</span>
+    <span class="m" style="background:${m.color}">${m.emoji}</span>
+    <span class="d">${it.min} 分 ▸</span></a>`;
+}
 function renderCalendar(){
   if(!lastSchedule) return;
   const {days,overflow}=lastSchedule;
   document.getElementById('calendar').innerHTML=days.map(day=>`
     <div class="day">
       <div class="dhead"><b>${day.name}</b><span>${day.total} / ${budget} 分鐘</span></div>
-      ${day.items.length? day.items.map(it=>{
-        const m=MODES[it.mode];
-        return `<div class="task"><span>${it.ic}</span><span>${it.n}</span>
-          <span class="m" style="background:${m.color}">${m.emoji}</span>
-          <span class="d">${it.min} 分</span></div>`;
-      }).join('') : '<div class="task muted">— 休息日，或加碼複習前一天的內容 —</div>'}
+      ${day.items.length? day.items.map(it=>taskRow(it)).join('')
+        : '<div class="task muted">— 休息日，或加碼複習前一天的內容 —</div>'}
     </div>`).join('');
 
   const ofBox=document.getElementById('overflowBox');
   if(overflow.length){
     ofBox.innerHTML=`<div class="overflow"><b>⏳ 本週排不下，下週優先排入（${overflow.length} 項）</b>
-      ${overflow.map(it=>{const m=MODES[it.mode];
-        return `<div class="task"><span>${it.ic}</span><span>${it.n}</span>
-          <span class="m" style="background:${m.color}">${m.emoji}</span>
-          <span class="d">${it.min} 分</span></div>`;}).join('')}
+      ${overflow.map(it=>taskRow(it)).join('')}
       <p class="muted" style="margin-top:6px">想一次排完全部 24 項？把每天練習時間調高，或勾掉幾種不想練的形式縮小池子。</p>
     </div>`;
   } else { ofBox.innerHTML=''; }
