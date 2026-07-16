@@ -4,171 +4,140 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MemoLingua · 訓練場實作版 🎮</title>
-<meta name="description" content="6 種訓練形式各 1 個真的能玩的試點：AI 對話、卡牌拼字、動作挑戰賽、辨音跟讀、雙胞胎卡對戰、資料轉表格。">
+<meta name="description" content="22 張記憶訓練卡全部做成真的能玩：AI 對話、卡牌拼接、小遊戲、辨音跟讀、相似事物拆解、結構化工具。">
 <style>
   :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
-  .wrap{max-width:640px;margin:0 auto;background:#fff;min-height:100vh;padding:0 20px 60px}
+  .wrap{max-width:660px;margin:0 auto;background:#fff;min-height:100vh;padding:0 18px 60px}
   h1{font-size:23px;margin:0}
-  h2{font-size:16px;margin:0 0 4px}
+  h2{font-size:17px;margin:0 0 4px}
   .muted{color:var(--sub);font-size:13px}
-  .tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;background:#fff;padding:12px 0;z-index:10;border-bottom:1px solid var(--line)}
-  .tab{padding:6px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:12px;cursor:pointer;text-decoration:none;color:var(--ink)}
-  section{margin-top:28px;scroll-margin-top:64px;border:1px solid var(--line);border-radius:18px;padding:16px}
-  section .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;margin-bottom:6px}
-  .btn{padding:11px 18px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+  .modeRow{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;background:#fff;padding:12px 0;z-index:10;border-bottom:1px solid var(--line)}
+  .mchip{padding:6px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:12px;cursor:pointer}
+  .mchip.on{color:#fff;border-color:transparent}
+  /* grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}}
+  .gcard{border:1px solid var(--line);border-radius:15px;padding:14px;cursor:pointer;transition:.15s;background:#fff;text-align:left}
+  .gcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .gcard .ic{font-size:26px}
+  .gcard b{display:block;font-size:14px;margin-top:5px}
+  .gcard .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff;margin-top:6px}
+  /* player */
+  .pbar{display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#fff;padding:12px 0;z-index:10;border-bottom:1px solid var(--line)}
+  #pBody{padding-top:14px}
+  .btn{padding:11px 17px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
   .btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:600}
   .btn.accent{background:var(--accent)}
+  .btn.sm{padding:7px 12px;font-size:12.5px}
   .btn:disabled{opacity:.45;cursor:not-allowed}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  input[type=text]{flex:1;min-width:120px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px}
-  /* AI chat */
-  .chatlog{max-height:280px;overflow-y:auto;margin-top:10px}
-  .bub{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13.5px;margin-top:6px;white-space:pre-wrap}
+  input[type=text],textarea{flex:1;min-width:120px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit}
+  textarea{width:100%;min-height:70px;resize:vertical}
+  /* chat */
+  .chatlog{max-height:300px;overflow-y:auto;margin-top:10px}
+  .bub{max-width:88%;padding:9px 12px;border-radius:12px;font-size:13.5px;margin-top:6px;white-space:pre-wrap;word-break:break-word}
   .bub.ai{background:#f4faf9;margin-right:auto}
   .bub.me{background:#eef2f7;margin-left:auto}
   .bub b{color:#dc2626}
-  .typing{font-size:12px;color:var(--sub);margin-top:6px}
-  /* card combo */
+  .typing{font-size:12px;color:var(--sub);margin-top:6px;min-height:18px}
+  /* generic */
   .tiles{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .tile{padding:8px 13px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:13px;cursor:pointer}
   .tile.sel{border-color:var(--accent);background:#e6faf6;font-weight:700}
+  .tile.used{opacity:.35;pointer-events:none}
   .slot{font-size:22px;font-weight:800;color:var(--primary);min-height:30px}
   .result{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13.5px}
   .result.ok{background:#ecfdf5;color:#047857}
   .result.no{background:#fef2f2;color:#b91c1c}
-  /* gesture game */
+  .result.info{background:#f8fafc;color:#334155}
   .word{font-size:28px;font-weight:800;text-align:center;margin:12px 0 6px}
   .gopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .gopt{padding:14px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:22px;cursor:pointer;text-align:center}
+  .gopt{padding:14px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:20px;cursor:pointer;text-align:center}
   .timerbar{height:6px;background:#eef0f3;border-radius:99px;overflow:hidden;margin:8px 0}
-  .timerbar>div{height:100%;background:var(--accent);transition:width .1s linear}
+  .timerbar>div{height:100%;background:var(--accent)}
   .score{font-size:13px;color:var(--sub);text-align:center;margin-top:6px}
-  /* sound */
   .pairbtn{padding:14px 20px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:17px;cursor:pointer;min-width:100px}
   .pairbtn.correct{border-color:#10b981;background:#ecfdf5}
   .pairbtn.wrong{border-color:#ef4444;background:#fef2f2}
-  /* similar */
   .twin{display:flex;gap:10px;margin-top:10px}
   .twincard{flex:1;text-align:center;padding:16px 8px;border-radius:14px;font-size:20px;font-weight:800;color:#fff}
   .hint{margin-top:10px;font-size:13.5px;background:#f8fafc;border-radius:10px;padding:10px 12px;display:none}
-  /* table tool */
   table.mktable{width:100%;border-collapse:collapse;margin-top:10px}
   table.mktable td,table.mktable th{border:1px solid var(--line);padding:5px}
   table.mktable input{width:100%;border:none;font-size:12.5px;padding:4px}
   .messy{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:8px}
-  .cta{display:block;text-align:center;padding:14px;border-radius:14px;background:var(--primary);color:#fff;font-weight:700;font-size:15px;text-decoration:none;margin-top:16px}
-  .cta.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:500}
+  .chipline{display:inline-block;font-size:12px;padding:3px 10px;border-radius:99px;background:#eef6f4;color:var(--primary);margin:3px 4px 0 0}
+  /* memory palace */
+  .room{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .spot{border:2px dashed var(--line);border-radius:12px;padding:12px 6px;text-align:center;font-size:12px;cursor:pointer;min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+  .spot.filled{border-style:solid;border-color:var(--accent);background:#f0fdfa}
+  .spot.active{border-color:#f59e0b;background:#fffbeb}
+  .spot .pl{font-size:19px}
+  .spot .it{font-weight:700;color:var(--primary)}
+  /* highlighter */
+  .hltext span{cursor:pointer;padding:1px 0;border-radius:3px}
+  .hltext span.g{background:#bbf7d0}
+  .hltext span.p{background:#fbcfe8}
+  .hltext span.y{background:#fef08a}
+  /* number code */
+  .numtable{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+  .numcell{border:1px solid var(--line);border-radius:9px;padding:7px 3px;text-align:center;font-size:11.5px}
+  .numcell b{display:block;font-size:16px;color:var(--accent)}
+  .bignum{font-size:34px;font-weight:800;letter-spacing:5px;text-align:center;margin:10px 0;color:var(--primary)}
+  /* chain */
+  .chainbox{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px;min-height:46px}
+  .chainitem{display:inline-block;background:#e6faf6;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;font-size:12.5px;margin:3px}
+  .arrow{color:var(--sub);margin:0 2px}
+  .cta{display:block;text-align:center;padding:13px;border-radius:14px;background:#fff;color:var(--sub);border:1px solid var(--line);font-weight:500;font-size:14px;text-decoration:none;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div style="text-align:center;padding:30px 0 8px">
-    <div style="font-size:42px">🎮</div>
-    <h1>訓練場：實作版</h1>
-    <p class="muted">6 種訓練形式各挑 1 張，做成真的能玩的版本——<br>不是規格文件，點下去真的會動。</p>
+
+  <!-- ===== 選單 ===== -->
+  <div id="gridView">
+    <div style="text-align:center;padding:28px 0 4px">
+      <div style="font-size:42px">🎮</div>
+      <h1>訓練場：實作版</h1>
+      <p class="muted">22 張訓練卡全部做成真的能玩的版本。<br>點任一張直接開始，不是規格文件。</p>
+    </div>
+    <div class="modeRow" id="modeRow"></div>
+    <div class="grid" id="grid"></div>
+    <a class="cta" href="gym.html">🏋️ 看每張卡的完整訓練設計（gym）</a>
+    <a class="cta" href="schedule.html">📅 產生每日訓練課表</a>
+    <a class="cta" href="index.html">← 回 MemoLingua 首頁</a>
   </div>
 
-  <div class="tabs">
-    <a class="tab" href="#ai">🤖 AI 對話</a>
-    <a class="tab" href="#card">🎴 卡牌訓練</a>
-    <a class="tab" href="#game">🎮 小遊戲</a>
-    <a class="tab" href="#sound">🎵 相似聲音</a>
-    <a class="tab" href="#similar">🔍 相似事物</a>
-    <a class="tab" href="#tool">🛠️ 結構工具</a>
+  <!-- ===== 遊玩畫面 ===== -->
+  <div id="playView" style="display:none">
+    <div class="pbar">
+      <button class="btn ghost sm" onclick="backToGrid()">← 返回</button>
+      <b id="pTitle" style="font-size:15px"></b>
+      <span class="badge" id="pBadge" style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;color:#fff"></span>
+    </div>
+    <div id="pBody"></div>
   </div>
-
-  <!-- 1. AI 對話：情境鉤子卡 -->
-  <section id="ai">
-    <span class="badge" style="background:#0ea5e9">🤖 AI 對話</span>
-    <h2>情境鉤子卡（真人版）</h2>
-    <p class="muted">真的接到 AI 對話後端——AI 會編一個情境，把一個英文單字藏進台詞裡，之後回頭考你記不記得。</p>
-    <div class="chatlog" id="aiLog"></div>
-    <div class="typing" id="aiTyping"></div>
-    <div class="row" style="margin-top:8px">
-      <button class="btn accent" id="aiStart" onclick="startHookCard()">▶ 開始情境鉤子卡</button>
-    </div>
-    <div class="row" style="margin-top:8px;display:none" id="aiInputRow">
-      <input type="text" id="aiInput" placeholder="用英文回覆…" onkeydown="if(event.key==='Enter')sendHookReply()">
-      <button class="btn" onclick="sendHookReply()">送出</button>
-    </div>
-  </section>
-
-  <!-- 2. 卡牌訓練：字根字首拆解樹 -->
-  <section id="card">
-    <span class="badge" style="background:#8b5cf6">🎴 卡牌訓練</span>
-    <h2>字根字首拆解樹（真人版）</h2>
-    <p class="muted">選一個字首（可跳過）＋一個字根＋一個字尾（可跳過），拼出一個真實單字。</p>
-    <p class="muted" style="margin:6px 0 0"><b>字首</b></p>
-    <div class="tiles" id="preTiles"></div>
-    <p class="muted" style="margin:6px 0 0"><b>字根</b></p>
-    <div class="tiles" id="rootTiles"></div>
-    <p class="muted" style="margin:6px 0 0"><b>字尾</b></p>
-    <div class="tiles" id="sufTiles"></div>
-    <p class="muted" style="margin:12px 0 2px">你拼出的字：</p>
-    <div class="slot" id="wordSlot">—</div>
-    <div class="row" style="margin-top:8px">
-      <button class="btn accent" onclick="checkCombo()">✓ 拼看看</button>
-      <button class="btn ghost" onclick="resetCombo()">重置</button>
-    </div>
-    <div id="comboResult"></div>
-  </section>
-
-  <!-- 3. 小遊戲：動作卡挑戰賽 -->
-  <section id="game">
-    <span class="badge" style="background:#f59e0b">🎮 小遊戲</span>
-    <h2>動作卡挑戰賽（真人版）</h2>
-    <p class="muted">看到詞彙，3 秒內選出對應手勢，8 題計分——真的有計時器在跑。</p>
-    <div class="row"><button class="btn accent" id="gameStart" onclick="startGestureGame()">▶ 開始挑戰（8 題）</button></div>
-    <div id="gameArea"></div>
-  </section>
-
-  <!-- 4. 相似聲音訓練：辨音跟讀 -->
-  <section id="sound">
-    <span class="badge" style="background:#ec4899">🎵 相似聲音訓練</span>
-    <h2>辨音跟讀（真人版）</h2>
-    <p class="muted">瀏覽器真的會念出聲音——用內建語音合成播放一對易混淆詞的其中一個，你選出聽到的是哪個，接著跟讀 3 次。</p>
-    <div id="soundArea"></div>
-  </section>
-
-  <!-- 5. 相似事物訓練：雙胞胎卡對戰 -->
-  <section id="similar">
-    <span class="badge" style="background:#10b981">🔍 相似事物訓練</span>
-    <h2>雙胞胎卡對戰（真人版）</h2>
-    <p class="muted">兩個超容易搞混的字/詞，先自己想差異，再翻牌對答案＋拿聯想鉤子。</p>
-    <div id="similarArea"></div>
-  </section>
-
-  <!-- 6. 結構工具：資料轉表格 -->
-  <section id="tool">
-    <span class="badge" style="background:#64748b">🛠️ 結構工具</span>
-    <h2>資料轉表格（真人版）</h2>
-    <p class="muted">下面這段動詞變化被打亂了，自己動手填進表格分類，填完可以對答案。</p>
-    <div class="messy" id="messyData"></div>
-    <table class="mktable" id="mkTable"></table>
-    <div class="row" style="margin-top:10px">
-      <button class="btn accent" onclick="revealTable()">👀 顯示範例答案</button>
-      <button class="btn ghost" onclick="resetTable()">清空重填</button>
-    </div>
-    <table class="mktable" id="answerTable" style="display:none;margin-top:10px"></table>
-  </section>
-
-  <a class="cta ghost" href="gym.html">🏋️ 回學習訓練場（22 張訓練卡設計）</a>
-  <a class="cta ghost" href="index.html">← 回 MemoLingua 首頁</a>
 </div>
 
 <script>
-/* ============ 共用：串流呼叫 fluent-ai 的 chat Edge Function ============ */
+/* ================= 共用基礎 ================= */
+const MODES={
+ ai:{label:'AI 對話',emoji:'🤖',color:'#0ea5e9'},
+ card:{label:'卡牌訓練',emoji:'🎴',color:'#8b5cf6'},
+ game:{label:'小遊戲',emoji:'🎮',color:'#f59e0b'},
+ sound:{label:'相似聲音',emoji:'🎵',color:'#ec4899'},
+ similar:{label:'相似事物',emoji:'🔍',color:'#10b981'},
+ tool:{label:'結構工具',emoji:'🛠️',color:'#64748b'}};
+
 const CHAT_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co/functions/v1/chat';
 const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
-
-// Gemini 免費層偶爾會短暫過載／限流，回 500 或 429。這類是暫時性的（實測連打三次
-// 就恢復），所以自動重試而不是直接讓使用者卡住；只有重試用盡才回報錯誤。
 const RETRYABLE=[429,500,502,503,504];
+
+// Gemini 免費層偶爾短暫過載回 500/429，屬暫時性 → 自動重試，別讓使用者卡住。
 async function streamChat(messages,settings,onDelta,onDone,onError,onRetry){
-  const MAX_TRIES=3;
-  let resp,lastErr='';
+  const MAX_TRIES=3; let resp,lastErr='';
   for(let attempt=1;attempt<=MAX_TRIES;attempt++){
     const abort=new AbortController();
     const timeout=setTimeout(()=>abort.abort(),45000);
@@ -177,278 +146,696 @@ async function streamChat(messages,settings,onDelta,onDone,onError,onRetry){
         headers:{'Content-Type':'application/json',Authorization:'Bearer '+ANON},
         body:JSON.stringify({messages,settings}),signal:abort.signal});
       clearTimeout(timeout);
-    }catch(e){
-      clearTimeout(timeout);
-      lastErr=(e&&e.name==='AbortError')?'AI 逾時沒有回應':'無法連線到 AI 伺服器';
-      resp=null;
-    }
-    if(resp&&resp.ok&&resp.body)break;              // 成功，往下讀串流
-    if(resp&&!RETRYABLE.includes(resp.status)){     // 非暫時性錯誤，不必重試
-      onError('AI 服務錯誤 (HTTP '+resp.status+')'); return;
-    }
+    }catch(e){ clearTimeout(timeout);
+      lastErr=(e&&e.name==='AbortError')?'AI 逾時沒有回應':'無法連線到 AI 伺服器'; resp=null; }
+    if(resp&&resp.ok&&resp.body)break;
+    if(resp&&!RETRYABLE.includes(resp.status)){ onError('AI 服務錯誤 (HTTP '+resp.status+')'); return; }
     if(resp)lastErr='AI 服務忙碌 (HTTP '+resp.status+')';
-    if(attempt<MAX_TRIES){
-      if(onRetry)onRetry(attempt,MAX_TRIES);
-      await new Promise(r=>setTimeout(r,attempt*1500));  // 遞增退避：1.5s → 3s
-      resp=null;
-    }
+    if(attempt<MAX_TRIES){ if(onRetry)onRetry(attempt,MAX_TRIES);
+      await new Promise(r=>setTimeout(r,attempt*1500)); resp=null; }
   }
   if(!resp||!resp.ok||!resp.body){ onError(lastErr+'，請稍後再試一次。'); return; }
-  const reader=resp.body.getReader();
-  const decoder=new TextDecoder();
-  let buf='';
+  const reader=resp.body.getReader(); const decoder=new TextDecoder(); let buf='';
   try{
     while(true){
-      const {done,value}=await reader.read();
-      if(done)break;
+      const {done,value}=await reader.read(); if(done)break;
       buf+=decoder.decode(value,{stream:true});
-      const parts=buf.split('\n\n');
-      buf=parts.pop();
+      const parts=buf.split('\n\n'); buf=parts.pop();
       for(const p of parts){
-        const line=p.trim();
-        if(!line.startsWith('data:'))continue;
+        const line=p.trim(); if(!line.startsWith('data:'))continue;
         const payload=line.slice(5).trim();
         if(payload==='[DONE]'){ onDone(); return; }
-        try{
-          const j=JSON.parse(payload);
-          const delta=j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
-          if(delta) onDelta(delta);
-        }catch(e){/* 忽略非 JSON 的心跳/extra_content 片段 */}
+        try{ const j=JSON.parse(payload);
+          const d=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
+          if(d)onDelta(d);
+        }catch(e){/* 忽略心跳/extra_content 片段 */}
       }
     }
     onDone();
   }catch(e){ onError('串流讀取中斷：'+e.message); }
 }
-function escHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function styleCorrections(t){
-  return escHtml(t)
-    .replace(/&lt;&lt;&lt;CORRECTION&gt;&gt;&gt;(.*?)&lt;&lt;&lt;END_CORRECTION&gt;&gt;&gt;/gs,'<br><b>✏️ 修正：</b>$1')
-    .replace(/&lt;&lt;&lt;SUGGESTION&gt;&gt;&gt;(.*?)&lt;&lt;&lt;END_SUGGESTION&gt;&gt;&gt;/gs,'<br><b>💡 更自然的說法：</b>$1');
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function styleCorr(t){
+  return esc(t)
+    .replace(/&lt;&lt;&lt;CORRECTION&gt;&gt;&gt;([\s\S]*?)&lt;&lt;&lt;END_CORRECTION&gt;&gt;&gt;/g,'<br><b>✏️ 修正：</b>$1')
+    .replace(/&lt;&lt;&lt;SUGGESTION&gt;&gt;&gt;([\s\S]*?)&lt;&lt;&lt;END_SUGGESTION&gt;&gt;&gt;/g,'<br><b>💡 更自然：</b>$1');
 }
-
-/* ============ 1. AI 對話：情境鉤子卡 ============ */
-const HOOK_WORDS=['soothing','reluctant','ambiguous','persistent','genuine','overwhelmed','skeptical','resourceful'];
-let hookMessages=[], hookWord='';
-function addBub(id,who,text){
-  const log=document.getElementById(id);
-  const d=document.createElement('div');
-  d.className='bub '+who; d.innerHTML=(who==='ai'?'🤖 ':'🙋 ')+styleCorrections(text);
-  log.appendChild(d); log.scrollTop=log.scrollHeight;
-  return d;
-}
-function startHookCard(){
-  hookWord=HOOK_WORDS[Math.floor(Math.random()*HOOK_WORDS.length)];
-  hookMessages=[{role:'user',content:'開始遊戲，請照你的角色設定開始第一個情境。'}];
-  document.getElementById('aiLog').innerHTML='';
-  document.getElementById('aiStart').disabled=true;
-  document.getElementById('aiTyping').textContent='🤖 正在構思情境…';
-  const settings={
-    language:'english',scenario:`情境鉤子卡遊戲：請你先想像並描述一個生活情境（例如咖啡廳、面試、問路），把英文單字「${hookWord}」自然放進情境對話台詞裡，只出現一次、不要特別強調或翻譯它。講完情境後明確告訴使用者「提示收起來了」，然後換一個新情境反問使用者剛剛那個字是什麼意思，並要求他們換一句話重新使用這個字。根據使用者的回答給予簡短鼓勵與回饋，答對就再換一個更難的情境繼續測。`,
-    difficulty:'intermediate',tone:'casual',mode:'practice',speed:'normal'};
-  let acc=''; const bub=addBub('aiLog','ai','');
-  streamChat(hookMessages,settings,
-    d=>{acc+=d; bub.innerHTML='🤖 '+styleCorrections(acc);},
-    ()=>{ hookMessages.push({role:'assistant',content:acc});
-      document.getElementById('aiTyping').textContent='';
-      document.getElementById('aiInputRow').style.display='flex'; },
-    err=>{ document.getElementById('aiTyping').textContent='⚠ '+err; document.getElementById('aiStart').disabled=false; },
-    (n,max)=>{ document.getElementById('aiTyping').textContent=`🤖 AI 忙碌中，重試 ${n}/${max}…`; });
-}
-function sendHookReply(){
-  const inp=document.getElementById('aiInput');
-  const text=inp.value.trim(); if(!text)return;
-  addBub('aiLog','me',text);
-  hookMessages.push({role:'user',content:text});
-  inp.value=''; document.getElementById('aiTyping').textContent='🤖 思考中…';
-  const settings={language:'english',scenario:'情境鉤子卡遊戲進行中，延續你剛剛設定的規則繼續下一輪。',difficulty:'intermediate',tone:'casual',mode:'practice',speed:'normal'};
-  let acc=''; const bub=addBub('aiLog','ai','');
-  streamChat(hookMessages,settings,
-    d=>{acc+=d; bub.innerHTML='🤖 '+styleCorrections(acc);},
-    ()=>{ hookMessages.push({role:'assistant',content:acc}); document.getElementById('aiTyping').textContent=''; },
-    err=>{ document.getElementById('aiTyping').textContent='⚠ '+err; },
-    (n,max)=>{ document.getElementById('aiTyping').textContent=`🤖 AI 忙碌中，重試 ${n}/${max}…`; });
-}
-
-/* ============ 2. 卡牌訓練：字根字首拆解樹 ============ */
-const PRE=['（無字首）','pre-','re-'];
-const ROOT=['dict','port','spect'];
-const SUF=['（無字尾）','-ion','-able'];
-const WORD_BANK={
- 'predict':'預測（pre 事先 + dict 說）','prediction':'預測（名詞）','predictable':'可預測的',
- 'report':'報告（re 再次 + port 帶／carry）','respect':'尊重（re 再 + spect 看）',
- 'portable':'可攜帶的（port 帶 + able 可以…的）'};
-let sel={pre:'',root:'',suf:''};
-function buildTiles(id,list,key){
-  document.getElementById(id).innerHTML=list.map(t=>
-    `<button class="tile" data-t="${t}" onclick="pickTile('${key}','${t}',this)">${t}</button>`).join('');
-}
-function pickTile(key,val,el){
-  sel[key]=val;
-  el.parentElement.querySelectorAll('.tile').forEach(b=>b.classList.remove('sel'));
-  el.classList.add('sel');
-  updateSlot();
-}
-function updateSlot(){
-  const p=sel.pre&&sel.pre!=='（無字首）'?sel.pre.replace('-',''):'';
-  const s=sel.suf&&sel.suf!=='（無字尾）'?sel.suf.replace('-',''):'';
-  const word=(p+(sel.root||'?')+s)||'—';
-  document.getElementById('wordSlot').textContent=sel.root? word : '—';
-}
-function checkCombo(){
-  updateSlot();
-  const word=document.getElementById('wordSlot').textContent;
-  const box=document.getElementById('comboResult');
-  if(!sel.root){ box.innerHTML='<div class="result no">先選一個字根再拼拼看～</div>'; return; }
-  if(WORD_BANK[word]){ box.innerHTML=`<div class="result ok">✅ ${word} —— ${WORD_BANK[word]}</div>`; }
-  else{ box.innerHTML=`<div class="result no">「${word}」不在這次的字庫裡，換個組合試試？（提示：dict/port/spect 都能配 pre-/re- 或不加字首）</div>`; }
-}
-function resetCombo(){ sel={pre:'',root:'',suf:''}; document.querySelectorAll('#card .tile').forEach(b=>b.classList.remove('sel'));
-  document.getElementById('wordSlot').textContent='—'; document.getElementById('comboResult').innerHTML=''; }
-buildTiles('preTiles',PRE,'pre'); buildTiles('rootTiles',ROOT,'root'); buildTiles('sufTiles',SUF,'suf');
-
-/* ============ 3. 小遊戲：動作卡挑戰賽 ============ */
-const GESTURES=[
- ['increase','⬆️ 手往上揮'],['decrease','⬇️ 手往下壓'],['reject','🙅 推開手勢'],['accept','🤝 握手'],
- ['stop','✋ 手掌張開'],['question','🤔 摸下巴'],['agree','👍 比讚'],['disagree','👎 比倒讚']];
-let gState=null;
-function startGestureGame(){
-  document.getElementById('gameStart').disabled=true;
-  gState={round:0,score:0,total:8,timer:null,timeLeft:3000};
-  nextGestureRound();
-}
-function nextGestureRound(){
-  if(gState.round>=gState.total){ endGestureGame(); return; }
-  gState.round++;
-  const correct=GESTURES[Math.floor(Math.random()*GESTURES.length)];
-  let opts=[correct];
-  while(opts.length<4){ const c=GESTURES[Math.floor(Math.random()*GESTURES.length)]; if(!opts.includes(c))opts.push(c); }
-  opts=opts.sort(()=>Math.random()-.5);
-  gState.correct=correct[0]; gState.answered=false; gState.timeLeft=3000;
-  const area=document.getElementById('gameArea');
-  area.innerHTML=`<div class="word">${correct[0]}</div>
-    <div class="timerbar"><div id="tbar" style="width:100%"></div></div>
-    <div class="gopts">${opts.map(o=>`<button class="gopt" onclick="answerGesture('${o[0]}',this)">${o[1]}</button>`).join('')}</div>
-    <div class="score">第 ${gState.round}/${gState.total} 題 · 已得分 ${gState.score}</div>`;
-  const start=Date.now();
-  if(gState.timer)clearInterval(gState.timer);
-  gState.timer=setInterval(()=>{
-    const left=Math.max(0,3000-(Date.now()-start));
-    const bar=document.getElementById('tbar'); if(bar)bar.style.width=(left/3000*100)+'%';
-    if(left<=0){ clearInterval(gState.timer); if(!gState.answered) answerGesture(null,null); }
-  },50);
-}
-function answerGesture(picked,el){
-  if(gState.answered)return; gState.answered=true;
-  clearInterval(gState.timer);
-  const ok=picked===gState.correct;
-  if(ok)gState.score++;
-  document.querySelectorAll('#gameArea .gopt').forEach(b=>b.style.opacity='.5');
-  if(el) el.style.opacity='1'; if(el) el.style.borderColor= ok?'#10b981':'#ef4444';
-  setTimeout(nextGestureRound,650);
-}
-function endGestureGame(){
-  document.getElementById('gameArea').innerHTML=
-    `<div class="word">🏁 ${gState.score} / ${gState.total}</div>
-     <p class="muted" style="text-align:center">${gState.score>=6?'手勢反應超快！':'再玩一次，讓身體記住這些詞'}</p>`;
-  document.getElementById('gameStart').disabled=false;
-}
-
-/* ============ 4. 相似聲音訓練：辨音跟讀 ============ */
-const PAIRS=[['ship','sheep'],['led','lead'],['bit','beat'],['full','fool'],['live','leave'],['sit','seat']];
-let sndState=null;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
 function speak(text,rate){
   if(!('speechSynthesis' in window))return false;
   const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=rate||1;
   speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
 }
-function initSound(){
-  if(!('speechSynthesis' in window)){
-    document.getElementById('soundArea').innerHTML='<p class="muted">⚠ 這個瀏覽器不支援語音合成，換 Chrome/Edge/Safari 最新版試試。</p>';
-    return;
-  }
-  sndState={round:0,total:6,score:0};
-  nextSoundRound();
+let audioCtx=null;
+function beep(freq){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value=freq||880;
+    g.gain.setValueAtTime(.25,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.06);
+    o.start(); o.stop(audioCtx.currentTime+.06);
+  }catch(e){}
 }
-function nextSoundRound(){
-  if(sndState.round>=sndState.total){
-    document.getElementById('soundArea').innerHTML=`<div class="word">🏁 ${sndState.score} / ${sndState.total}</div>
-      <button class="btn accent" onclick="initSound()">🔄 再玩一輪</button>`;
-    return;
-  }
-  sndState.round++;
-  const pair=PAIRS[Math.floor(Math.random()*PAIRS.length)];
-  const target=pair[Math.random()<0.5?0:1];
-  sndState.target=target; sndState.pair=pair; sndState.phase='listen';
-  document.getElementById('soundArea').innerHTML=`
-    <p class="muted">第 ${sndState.round}/${sndState.total} 輪 · 已答對 ${sndState.score}</p>
-    <div class="row" style="justify-content:center;margin-top:8px">
-      <button class="btn accent" onclick="speak(sndState.target,0.9)">🔊 播放</button>
-    </div>
-    <div class="row" style="justify-content:center;margin-top:10px" id="sndOpts">
-      <button class="pairbtn" onclick="pickSound('${pair[0]}',this)">${pair[0]}</button>
-      <button class="pairbtn" onclick="pickSound('${pair[1]}',this)">${pair[1]}</button>
+
+/* ========= AI 對話工廠：8 張 AI 卡共用同一套串流邏輯 ========= */
+function aiMount(cfg){
+  return function(el){
+    el.innerHTML=`
+      <p class="muted">${cfg.desc}</p>
+      ${cfg.setup||''}
+      <div class="chatlog" id="log"></div>
+      <div class="typing" id="typing"></div>
+      <div class="row" style="margin-top:8px"><button class="btn accent" id="startBtn">▶ ${cfg.startLabel||'開始'}</button></div>
+      <div class="row" style="margin-top:8px;display:none" id="inputRow">
+        <input type="text" id="inp" placeholder="${cfg.placeholder||'輸入你的回覆…'}">
+        <button class="btn" id="sendBtn">送出</button>
+      </div>`;
+    let msgs=[], scenario='';
+    const bub=(who,text)=>{
+      const d=document.createElement('div'); d.className='bub '+who;
+      d.innerHTML=(who==='ai'?'🤖 ':'🙋 ')+styleCorr(text);
+      $('log').appendChild(d); $('log').scrollTop=$('log').scrollHeight; return d;
+    };
+    const settings=()=>({language:'english',scenario,difficulty:'intermediate',tone:cfg.tone||'casual',mode:'practice',speed:'normal'});
+    function run(){
+      let acc=''; const b=bub('ai','');
+      $('typing').textContent='🤖 思考中…';
+      streamChat(msgs,settings(),
+        d=>{acc+=d; b.innerHTML='🤖 '+styleCorr(acc);},
+        ()=>{ msgs.push({role:'assistant',content:acc}); $('typing').textContent='';
+              $('inputRow').style.display='flex'; },
+        e=>{ $('typing').textContent='⚠ '+e; $('startBtn').disabled=false; },
+        (n,m)=>{ $('typing').textContent=`🤖 AI 忙碌中，重試 ${n}/${m}…`; });
+    }
+    $('startBtn').onclick=()=>{
+      const err=cfg.validate?cfg.validate():null;
+      if(err){ $('typing').textContent='⚠ '+err; return; }
+      scenario=cfg.scenario();
+      msgs=[{role:'user',content:cfg.kickoff||'開始，請照你的角色設定進行第一輪。'}];
+      $('log').innerHTML=''; $('startBtn').disabled=true; run();
+    };
+    $('sendBtn').onclick=()=>{
+      const v=$('inp').value.trim(); if(!v)return;
+      bub('me',v); msgs.push({role:'user',content:v}); $('inp').value=''; run();
+    };
+    $('inp').onkeydown=e=>{ if(e.key==='Enter')$('sendBtn').onclick(); };
+  };
+}
+
+/* ================= 題庫 ================= */
+const HOOK_WORDS=['soothing','reluctant','ambiguous','persistent','genuine','overwhelmed','skeptical','resourceful'];
+const STORY_SETS=[
+ {theme:'機場趕飛機',words:['panicked','boarding','delayed','luggage','relieved']},
+ {theme:'餐廳客訴',words:['refund','undercooked','apologize','manager','compensation']},
+ {theme:'面試現場',words:['nervous','qualification','strength','salary','opportunity']}];
+const TOPICS=['光合作用','複利效果','供需法則','牛頓第三定律','關係子句','熵'];
+const IMPROMPTU=['用今天學的 3 個詞造一個投訴信開頭','30 秒解釋一個公式給小學生聽','用 refund 抱怨一個爛商品','描述你昨天做的一件事，全程用過去式'];
+const MEME_ITEMS=['維也納會議 1815 年','法國大革命 1789 年','光合作用的三步驟','水的沸點 100°C'];
+const RP_SETS=[
+ {role:'回到 1929 年的時空偵探',words:['crash','panic','invest','recover','warn']},
+ {role:'跟外國客戶談判的 PM',words:['deadline','budget','compromise','deliver','risk']}];
+const BUG_TEXTS=['二次大戰爆發於 1945 年，起因是珍珠港事變。','光合作用發生在粒線體，把氧氣轉換成二氧化碳。','複利的意思是每年拿到一樣多的固定利息。'];
+
+/* ================= 22 張訓練卡 ================= */
+const EX=[
+/* ---------- 🤖 AI 對話 × 9 ---------- */
+{id:'hook',n:'情境鉤子卡',ic:'📍',mode:'ai',mount:(()=>{let w='';return aiMount({
+  desc:'AI 會編一個生活情境，把一個英文單字自然藏進台詞裡，之後回頭考你記不記得。',
+  startLabel:'開始情境鉤子卡',placeholder:'用英文回覆…',
+  scenario:()=>{ w=pick(HOOK_WORDS);
+    return `情境鉤子卡遊戲：先描述一個生活情境（咖啡廳／面試／問路），把英文單字「${w}」自然放進情境對話台詞裡，只出現一次、不要特別強調或翻譯。講完後明確說「提示收起來了」，然後換一個新情境反問使用者剛剛那個字是什麼意思，並要他們換句話重新使用它。答對就換更難的情境繼續。`;}
+  });})()},
+{id:'story',n:'情感故事卡',ic:'📖',mode:'ai',mount:(()=>{let s=null;return aiMount({
+  desc:'AI 把 5 個單字編進一個有情緒轉折的故事，再要你用自己的話複述、把單字用出來。',
+  startLabel:'聽一個故事',placeholder:'用你自己的話接故事…',
+  scenario:()=>{ s=pick(STORY_SETS);
+    return `情感故事卡遊戲：用「${s.theme}」當背景，編一個有人物、情緒和轉折的短故事（120 字內），把這 5 個英文單字自然編進去：${s.words.join(', ')}。故事說完後，問使用者「主角當時的心情是？他做了什麼？」引導他們用自己的話複述並把單字用出來。複述後，抽掉故事情境再考一次這批單字，測試是否真的記住。`;}
+  });})()},
+{id:'feynman',n:'費曼原理卡',ic:'🧑‍🏫',mode:'ai',mount:(()=>{let t='';return aiMount({
+  desc:'你來教 AI 一個原理，AI 扮演什麼都不懂的學生連環追問「為什麼」，問到你卡住為止。',
+  startLabel:'開始教學挑戰',placeholder:'用自己的話解釋…',tone:'casual',
+  setup:`<div class="row" style="margin-top:8px"><span class="muted">主題：</span><span id="fmTopic" class="chipline"></span>
+         <button class="btn ghost sm" onclick="(function(){var t=window.__pickTopic();document.getElementById('fmTopic').textContent=t;})()">🎲 換一個</button></div>`,
+  scenario:()=>{ t=$('fmTopic').textContent;
+    return `費曼原理卡遊戲：你扮演一個什麼都不懂、很愛問「為什麼」的學生。使用者要教你「${t}」。開場先說你完全不懂這個主題、請對方教你。之後每一輪都針對他的解釋連環追問：「為什麼？」「可以舉個例子嗎？」「那如果反過來呢？」。當他解釋得夠清楚時才說你懂了，並指出他哪個部分講得最好。全程用繁體中文，不要用英文。`;}
+  });})()},
+{id:'impromptu',n:'即時輸出卡',ic:'⚡',mode:'ai',mount:(()=>aiMount({
+  desc:'AI 每輪丟一個隨機任務，不給準備時間，講完立刻下一題——用輕壓力逼大腦即時檢索。',
+  startLabel:'開始即興挑戰',placeholder:'不要想太久，直接打…',
+  scenario:()=>`即時輸出卡遊戲：你是即興教練。每一輪丟一個隨機即興任務給使用者（例如：${IMPROMPTU.join('；')}），要求他立刻用英文回答、不准準備。他回答後給一句簡短回饋就立刻進下一題，共 3 輪。第 3 輪結束後，挑出他講得最卡的一句，跟他一起做一個「修正版」，作為這次唯一要精修的內容。`
+  }))()},
+{id:'podcast',n:'Podcast 說書人任務',ic:'🎙️',mode:'ai',mount:(()=>{let t='';return aiMount({
+  desc:'假裝你是廣播主持人，60 秒把一個知識講給聽眾聽，AI 依開場、關鍵字、收尾三維度評分。',
+  startLabel:'麥克風開了',placeholder:'寫下你的 60 秒說書稿…',
+  setup:`<div class="row" style="margin-top:8px"><span class="muted">主題：</span><span id="pdTopic" class="chipline"></span>
+         <button class="btn ghost sm" onclick="(function(){var t=window.__pickTopic();document.getElementById('pdTopic').textContent=t;})()">🎲 換一個</button></div>`,
+  scenario:()=>{ t=$('pdTopic').textContent;
+    return `Podcast 說書人任務：使用者要假裝廣播主持人，用 60 秒把「${t}」講給聽眾聽。開場先說「麥克風開了！」並明確列出這個主題至少要出現的 3 個關鍵字。他交稿後，依「開場吸引力／關鍵字完整度／收尾金句」三個維度各給 1-5 分與具體評語，並指出漏掉哪些關鍵字、要他補齊重講。全程用繁體中文。`;}
+  });})()},
+{id:'meme',n:'諧音迷因與口訣創作家',ic:'😂',mode:'ai',mount:(()=>{let m='';return aiMount({
+  desc:'跟 AI 一起把枯燥考點編成順口溜或冷笑話，最後 AI 會假裝失憶考你，測口訣有沒有效。',
+  startLabel:'開始腦力激盪',placeholder:'你的口訣版本…',
+  setup:`<div class="row" style="margin-top:8px"><span class="muted">要記的：</span><span id="mmItem" class="chipline"></span>
+         <button class="btn ghost sm" onclick="(function(){var t=window.__pickMeme();document.getElementById('mmItem').textContent=t;})()">🎲 換一個</button></div>`,
+  scenario:()=>{ m=$('mmItem').textContent;
+    return `諧音迷因與口訣創作家：要記的內容是「${m}」。你先主動提 2-3 個諧音口訣的爛哏拋磚引玉（越好笑越好），邀請使用者提出他自己的版本。他提出後給回饋、一起優化，並要他唸三遍確認順口。定案後，假裝失憶考他：「等等，${m} 是什麼來著？」測試口訣能不能真的把答案釣出來。全程用繁體中文。`;}
+  });})()},
+{id:'rp',n:'情境式 AI 劇本殺',ic:'🎭',mode:'ai',mount:(()=>{let s=null;return aiMount({
+  desc:'AI 當劇情主持人，你必須主動用出指定單字才能觸發下一段劇情——講不出來劇情就卡住。',
+  startLabel:'進入劇本',placeholder:'用英文行動／對話…',
+  scenario:()=>{ s=pick(RP_SETS);
+    return `情境式 AI 劇本殺：使用者扮演「${s.role}」。這是一場角色扮演任務，核心單字有 5 個：${s.words.join(', ')}。開場給第一段劇情。規則：使用者必須在對話中主動且正確地使用出這些核心詞，每用對一個就推進一段新劇情並明確告訴他「🔓 觸發線索 X/5」；沒用到就讓劇情卡住，用情境暗示他該用哪個詞但不要直接講答案。5 個詞全部觸發後給一個呼應他用詞方式的劇情結局。`;}
+  });})()},
+{id:'bug',n:'AI 挑錯與除錯專家任務',ic:'🐛',mode:'ai',mount:(()=>aiMount({
+  desc:'AI 故意給一段有錯的摘要，你扮演抓漏專家找出錯誤、說明原因，AI 會反問逼你講得更精確。',
+  startLabel:'開始抓漏',placeholder:'指出哪裡錯了、為什麼…',
+  scenario:()=>`AI 挑錯與除錯專家任務：你先給出一段刻意寫錯的知識摘要（從這些裡挑一個或自己編類似的：${BUG_TEXTS.join(' / ')}），裡面藏有事實錯誤或邏輯漏洞。使用者扮演「抓漏專家」要找出錯誤並說明錯在哪。他答對時不要馬上認輸，反問他更精確的細節（「那正確的是什麼？」「這兩者的關係到底是什麼？」）逼他講清楚。最後一起產出修正版。全程用繁體中文。`
+  }))()},
+{id:'fixloop',n:'錯誤修正回路',ic:'🔁',mode:'ai',mount:(()=>aiMount({
+  desc:'AI 出一題你容易踩坑的題目，先讓你自己診斷錯因，不直接公布答案，再當場重做修正版。',
+  startLabel:'開始修正回路',placeholder:'你的答案／診斷…',
+  scenario:()=>`錯誤修正回路：出一題英文學習者常踩坑的題目（時態、介系詞、可數不可數、關係代名詞擇一）。使用者作答後，不要直接公布答案，先問他：「你覺得自己是不是踩到某個坑了？先別看答案，自己抓抓看問題在哪。」逼他自己診斷錯因。他診斷後才確認、解釋規則，並要他當場重做一次修正版。最後告訴他這個坑的通用判斷法，讓他下次遇到同題型能自己判斷。`
+  }))()},
+
+/* ---------- 🎴 卡牌訓練 × 5 ---------- */
+{id:'root',n:'字根字首拆解樹',ic:'🧩',mode:'card',mount(el){
+  const PRE=['（無字首）','pre-','re-'],ROOT=['dict','port','spect'],SUF=['（無字尾）','-ion','-able'];
+  const BANK={'predict':'預測（pre 事先 + dict 說）','prediction':'預測（名詞）','predictable':'可預測的',
+    'report':'報告（re 再次 + port 帶／carry）','respect':'尊重（re 再 + spect 看）','portable':'可攜帶的（port 帶 + able 可以…的）',
+    'dictation':'聽寫（dict 說 + ation）','spectable':'—','inspect':'—'};
+  let sel={pre:'',root:'',suf:''};
+  el.innerHTML=`<p class="muted">選字首（可不選）＋字根＋字尾（可不選），拼出真實單字。同一個字根能拼出好幾個字。</p>
+    <p class="muted" style="margin:8px 0 0"><b>字首</b></p><div class="tiles" id="t1"></div>
+    <p class="muted" style="margin:6px 0 0"><b>字根</b></p><div class="tiles" id="t2"></div>
+    <p class="muted" style="margin:6px 0 0"><b>字尾</b></p><div class="tiles" id="t3"></div>
+    <p class="muted" style="margin:12px 0 2px">你拼出的字：</p><div class="slot" id="slot">—</div>
+    <div class="row" style="margin-top:8px"><button class="btn accent" id="chk">✓ 拼看看</button>
+      <button class="btn ghost" id="rst">重置</button></div><div id="res"></div>`;
+  const build=(id,list,key)=>{ $(id).innerHTML=list.map(t=>`<button class="tile" data-k="${key}" data-v="${t}">${t}</button>`).join(''); };
+  build('t1',PRE,'pre'); build('t2',ROOT,'root'); build('t3',SUF,'suf');
+  const upd=()=>{ const p=sel.pre&&sel.pre!=='（無字首）'?sel.pre.replace('-',''):'';
+    const s=sel.suf&&sel.suf!=='（無字尾）'?sel.suf.replace('-',''):'';
+    $('slot').textContent=sel.root?(p+sel.root+s):'—'; };
+  el.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{
+    sel[b.dataset.k]=b.dataset.v;
+    b.parentElement.querySelectorAll('.tile').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); upd(); });
+  $('chk').onclick=()=>{ upd(); const w=$('slot').textContent;
+    if(!sel.root){ $('res').innerHTML='<div class="result no">先選一個字根～</div>'; return; }
+    $('res').innerHTML=(BANK[w]&&BANK[w]!=='—')
+      ? `<div class="result ok">✅ <b>${w}</b> —— ${BANK[w]}</div>`
+      : `<div class="result no">「${w}」不在這次字庫裡，換個組合試試（提示：pre+dict、re+port、re+spect、port+able 都通）</div>`; };
+  $('rst').onclick=()=>{ sel={pre:'',root:'',suf:''};
+    el.querySelectorAll('.tile').forEach(b=>b.classList.remove('sel'));
+    $('slot').textContent='—'; $('res').innerHTML=''; };
+}},
+{id:'web',n:'概念織網卡',ic:'🕸️',mode:'card',mount(el){
+  const POOL=['供需曲線','食物鏈','人際邊界','複利','免疫系統','塞車','記憶遺忘','城市交通','細胞分裂','市場競爭'];
+  const cards=shuffle(POOL).slice(0,5);
+  let picked=[],links=[];
+  el.innerHTML=`<p class="muted">抽 5 張概念卡。點兩張把它們連起來，寫一句類比說明它們哪裡像——連得越跨域越好。</p>
+    <div class="tiles" id="cw"></div>
+    <div class="row" style="margin-top:10px"><input type="text" id="ana" placeholder="這兩個哪裡像？例如：都是越用越熟練…"><button class="btn accent" id="link">🔗 連起來</button></div>
+    <div id="msg" class="muted" style="margin-top:6px"></div>
+    <div id="list" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="ai" disabled>🤖 讓 AI 點評我的連結</button></div>
+    <div class="typing" id="typing"></div><div id="fb"></div>`;
+  const draw=()=>{ $('cw').innerHTML=cards.map((c,i)=>
+    `<button class="tile${picked.includes(i)?' sel':''}" data-i="${i}">${c}</button>`).join('');
+    el.querySelectorAll('#cw .tile').forEach(b=>b.onclick=()=>{
+      const i=+b.dataset.i;
+      if(picked.includes(i))picked=picked.filter(x=>x!==i);
+      else if(picked.length<2)picked.push(i);
+      else picked=[picked[1],i];
+      draw(); }); };
+  draw();
+  $('link').onclick=()=>{
+    const a=$('ana').value.trim();
+    if(picked.length!==2){ $('msg').textContent='⚠ 先點選兩張卡'; return; }
+    if(!a){ $('msg').textContent='⚠ 寫一句類比再連'; return; }
+    links.push({a:cards[picked[0]],b:cards[picked[1]],t:a});
+    picked=[]; $('ana').value=''; $('msg').textContent='';
+    draw();
+    $('list').innerHTML=links.map(l=>`<div class="result info">🔗 <b>${esc(l.a)}</b> ↔ <b>${esc(l.b)}</b><br><span class="muted">${esc(l.t)}</span></div>`).join('');
+    $('ai').disabled=links.length===0;
+  };
+  $('ai').onclick=()=>{
+    $('ai').disabled=true; $('typing').textContent='🤖 檢查邏輯中…';
+    const body=links.map(l=>`「${l.a}」↔「${l.b}」：${l.t}`).join('\n');
+    let acc=''; $('fb').innerHTML='<div class="bub ai" id="fbb">🤖 </div>';
+    streamChat([{role:'user',content:'請點評我建立的概念連結：\n'+body}],
+      {language:'english',scenario:'概念織網卡：使用者用類比連結不相干的概念來建立記憶網。你要針對每一條連結，判斷這個類比邏輯站不站得住腳，給簡短點評（合理／有趣／太牽強），並針對最好的那一條說明為什麼它是好的記憶錨點。不要給標準答案，重點是鼓勵跨域連結。全程用繁體中文。',difficulty:'intermediate',tone:'casual',mode:'practice'},
+      d=>{acc+=d; $('fbb').innerHTML='🤖 '+esc(acc);},
+      ()=>{ $('typing').textContent=''; $('ai').disabled=false; },
+      e=>{ $('typing').textContent='⚠ '+e; $('ai').disabled=false; },
+      (n,m)=>{ $('typing').textContent=`🤖 忙碌中，重試 ${n}/${m}…`; });
+  };
+}},
+{id:'imgremix',n:'AI 圖像生成變形記',ic:'🎨',mode:'card',mount(el){
+  el.innerHTML=`<p class="muted">輸入一個你老是背不起來的單字，AI 生成一張荒謬畫面描述當記憶錨點，你再加自己的變形規則——動手改過的畫面才記得牢。</p>
+    <div class="row" style="margin-top:8px"><input type="text" id="w" placeholder="例如：monotonous、ambiguous…"><button class="btn accent" id="gen">🎨 生成荒謬畫面</button></div>
+    <div class="typing" id="typing"></div>
+    <div id="img"></div>
+    <div id="remix" style="display:none;margin-top:12px">
+      <p class="muted"><b>你的 3 條變形規則</b>（換顏色／加道具／換場景，越荒謬越好）</p>
+      <input type="text" class="r" placeholder="1. 例如：把主角衣服改成螢光綠" style="width:100%;margin-top:6px">
+      <input type="text" class="r" placeholder="2. 例如：加上一把雷神之槌" style="width:100%;margin-top:6px">
+      <input type="text" class="r" placeholder="3. 例如：場景改成你家廚房" style="width:100%;margin-top:6px">
+      <div class="row" style="margin-top:8px"><button class="btn" id="save">💾 存成記憶卡</button></div>
+      <div id="card"></div>
     </div>`;
-  speak(target,0.9);
-}
-function pickSound(word,el){
-  const ok=word===sndState.target;
-  if(ok)sndState.score++;
-  document.querySelectorAll('#sndOpts .pairbtn').forEach(b=>b.classList.add(b.textContent===sndState.target?'correct':'wrong'));
-  setTimeout(()=>{ shadowPractice(); },500);
-}
-function shadowPractice(){
-  document.getElementById('soundArea').insertAdjacentHTML('beforeend',
-    `<div class="row" style="justify-content:center;margin-top:10px">
-      <button class="btn ghost" onclick="speak(sndState.target,0.6)">🐢 慢速跟讀 x1</button>
-      <button class="btn" onclick="nextSoundRound()">下一輪 →</button>
-     </div>
-     <p class="muted" style="text-align:center;margin-top:6px">聽慢速播放，跟著念 3 次，感受重音差異</p>`);
-}
+  let desc='';
+  $('gen').onclick=()=>{
+    const w=$('w').value.trim(); if(!w){ $('typing').textContent='⚠ 先輸入一個單字'; return; }
+    $('gen').disabled=true; $('typing').textContent='🎨 構思荒謬畫面中…';
+    let acc=''; $('img').innerHTML='<div class="bub ai" id="ib">🤖 </div>';
+    streamChat([{role:'user',content:'單字：'+w}],
+      {language:'english',scenario:`AI 圖像生成變形記：使用者給一個難背的英文單字，你要生成一張「荒謬、高彩度、有動作」的畫面描述當作記憶錨點（不是給字義解釋）。例如 monotonous → 「一隻眼神死掉的猴子，在灰暗的房間裡，用單指重覆敲擊鋼琴同一個音階」。畫面要離奇到看一次就忘不掉，並用一句話說明畫面怎麼對應到字義。控制在 80 字內。全程用繁體中文。`,difficulty:'intermediate',tone:'casual',mode:'practice'},
+      d=>{acc+=d; $('ib').innerHTML='🤖 '+esc(acc);},
+      ()=>{ desc=acc; $('typing').textContent=''; $('gen').disabled=false; $('remix').style.display='block'; },
+      e=>{ $('typing').textContent='⚠ '+e; $('gen').disabled=false; },
+      (n,m)=>{ $('typing').textContent=`🎨 忙碌中，重試 ${n}/${m}…`; });
+  };
+  $('save').onclick=()=>{
+    const rules=[...el.querySelectorAll('.r')].map(i=>i.value.trim()).filter(Boolean);
+    if(!rules.length){ $('card').innerHTML='<div class="result no">至少寫一條自己的變形規則——親手改過才是記憶關鍵</div>'; return; }
+    $('card').innerHTML=`<div class="result ok"><b>🎴 記憶卡：${esc($('w').value)}</b>
+      <div style="margin-top:6px"><b>卡面（AI 畫面）</b><br>${esc(desc)}</div>
+      <div style="margin-top:6px"><b>卡背（你的變形規則）</b><br>${rules.map((r,i)=>(i+1)+'. '+esc(r)).join('<br>')}</div>
+      <div class="muted" style="margin-top:6px">下次複習：先靠這 3 條規則在腦中重建畫面，再翻卡對答案。</div></div>`;
+  };
+}},
+{id:'chain',n:'知識地圖連連看',ic:'🗺️',mode:'card',mount(el){
+  const SETS=[
+   {t:'工業革命的因果鏈',items:['蒸汽機發明','工廠大量生產','農村人口湧入城市','都市化與勞工階級形成']},
+   {t:'溫室效應的因果鏈',items:['燃燒化石燃料','大氣中二氧化碳增加','紅外線輻射被吸收','全球平均氣溫上升']},
+   {t:'供需失衡的因果鏈',items:['原物料短缺','生產成本上升','商品售價提高','消費者需求下降']}];
+  let set=pick(SETS), pool=shuffle(set.items), chain=[];
+  const draw=()=>{
+    $('pool').innerHTML=pool.map((it,i)=>`<button class="tile${chain.includes(it)?' used':''}" data-i="${i}">${it}</button>`).join('');
+    el.querySelectorAll('#pool .tile').forEach(b=>b.onclick=()=>{
+      const it=pool[+b.dataset.i]; if(chain.includes(it))return;
+      chain.push(it); draw(); });
+    $('chain').innerHTML=chain.length
+      ? chain.map((c,i)=>`<span class="chainitem">${esc(c)}</span>${i<chain.length-1?'<span class="arrow">→</span>':''}`).join('')
+      : '<span class="muted">點下方卡片，依「因為 A → 所以 B」的順序排出因果鏈</span>';
+    $('chk').disabled=chain.length!==set.items.length;
+  };
+  el.innerHTML=`<p class="muted">把打散的知識點排成「因為 A，所以 B，最後 C」的因果鏈。排完對答案。</p>
+    <div class="result info" style="margin-top:8px"><b>${set.t}</b></div>
+    <div class="chainbox" id="chain"></div>
+    <div class="tiles" id="pool"></div>
+    <div class="row" style="margin-top:10px"><button class="btn accent" id="chk" disabled>✓ 對答案</button>
+      <button class="btn ghost" id="rst">重排</button><button class="btn ghost" id="nx">換一組 →</button></div>
+    <div id="res"></div>`;
+  draw();
+  $('chk').onclick=()=>{
+    const ok=chain.every((c,i)=>c===set.items[i]);
+    $('res').innerHTML=ok
+      ? '<div class="result ok">✅ 完全正確！因果順序對了，這組知識就不用死背了。</div>'
+      : `<div class="result no">❌ 順序不對。正確因果鏈：<br>${set.items.map((c,i)=>`${i+1}. ${esc(c)}`).join('<br>')}<br><span class="muted">看懂為什麼是這個順序，比背下來更重要。</span></div>`;
+  };
+  $('rst').onclick=()=>{ chain=[]; $('res').innerHTML=''; draw(); };
+  $('nx').onclick=()=>{ const o=set; while(set===o)set=pick(SETS);
+    pool=shuffle(set.items); chain=[]; $('res').innerHTML='';
+    el.querySelector('.result.info').innerHTML='<b>'+set.t+'</b>'; draw(); };
+}},
+{id:'numcode',n:'數字轉碼訓練',ic:'🔢',mode:'card',mount(el){
+  const TABLE=[['0','蛋','形狀像 0'],['1','蠟燭','直直一枝'],['2','天鵝','脖子彎like2'],['3','愛心','雙峰像 3'],['4','帆船','帆的角像 4'],
+    ['5','衣架','鉤子像 5'],['6','煙斗','圈+柄像 6'],['7','枴杖','角度像 7'],['8','雪人','兩圈疊起來'],['9','氣球','圓圈+尾巴']];
+  let num='',phase='learn';
+  const gen=()=>{ num=''; for(let i=0;i<6;i++)num+=Math.floor(Math.random()*10); };
+  const imgs=n=>n.split('').map(d=>TABLE[+d][1]).join(' → ');
+  const draw=()=>{
+    el.innerHTML=`<p class="muted">0–9 每個數字固定對應一個圖像（一輩子不要換）。把數字轉成畫面故事，就能記住任何數字序列。</p>
+      <div class="numtable">${TABLE.map(([d,img,why])=>`<div class="numcell"><b>${d}</b>${img}<br><span class="muted" style="font-size:10px">${why}</span></div>`).join('')}</div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+      ${phase==='learn'?`
+        <p class="muted"><b>要記住這組數字：</b></p>
+        <div class="bignum">${num}</div>
+        <div class="result info">🖼️ 對應圖像：<b>${imgs(num)}</b><br><span class="muted">把這 6 個圖像串成一個誇張的連續動作故事，寫在下面。</span></div>
+        <textarea id="story" placeholder="例如：一顆蛋滾下樓梯撞倒蠟燭，火燒到天鵝的屁股，天鵝叼著愛心飛上帆船…"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn accent" id="go">🙈 蓋牌，考我</button></div>`
+      :`
+        <p class="muted"><b>只靠你剛剛編的故事，回想那組數字：</b></p>
+        <div class="result info" style="margin-top:6px">📖 你的故事：<br><span class="muted">${esc(window.__ncStory||'（沒寫故事）')}</span></div>
+        <div class="row" style="margin-top:10px"><input type="text" id="ans" placeholder="輸入 6 位數字" maxlength="6"><button class="btn accent" id="chk">✓ 對答案</button></div>
+        <div id="res"></div>`}`;
+    if(phase==='learn'){
+      $('go').onclick=()=>{ window.__ncStory=$('story').value.trim(); phase='test'; draw(); };
+    }else{
+      $('chk').onclick=()=>{
+        const a=$('ans').value.trim();
+        $('res').innerHTML=(a===num)
+          ? `<div class="result ok">✅ 完全正確！<b>${num}</b> —— 故事法有效，你根本沒死背數字。</div><div class="row" style="margin-top:8px"><button class="btn ghost" onclick="window.__ncNext()">🔄 再來一組</button></div>`
+          : `<div class="result no">❌ 你答 ${esc(a)}，正確是 <b>${num}</b>（${imgs(num)}）<br><span class="muted">故事不夠誇張就容易漏——畫面越荒謬越好記。</span></div><div class="row" style="margin-top:8px"><button class="btn ghost" onclick="window.__ncNext()">🔄 再來一組</button></div>`;
+      };
+    }
+  };
+  window.__ncNext=()=>{ gen(); phase='learn'; window.__ncStory=''; draw(); };
+  gen(); draw();
+}},
 
-/* ============ 5. 相似事物訓練：雙胞胎卡對戰 ============ */
-const TWINS=[
- {a:'affect',b:'effect',color1:'#6366f1',color2:'#8b5cf6',hint:'affect 是動詞（影響），effect 通常是名詞（結果／效果）。',mnemonic:'💡 Actions AFFECT, Effects are the End result —— a 開頭是動作(Action)，e 開頭是結果(End)。'},
- {a:"its",b:"it's",color1:'#0ea5e9',color2:'#06b6d4',hint:"its 是所有格（它的），it's 是 it is / it has 的縮寫。",mnemonic:"💡 有撇號(')的一律是縮寫，不是所有格——所有格從不用撇號。"},
- {a:'then',b:'than',color1:'#f59e0b',color2:'#f97316',hint:'then 表示時間順序（然後），than 用於比較（比…）。',mnemonic:'💡 thAn 有 a，用在比較(compAre)；then 是接下來、然後的意思。'},
- {a:'lose',b:'loose',color1:'#ef4444',color2:'#ec4899',hint:'lose 是動詞（失去，一個 o），loose 是形容詞（鬆的，兩個 o）。',mnemonic:'💡 loose 比 lose 多一個 o，就像「鬆」開的東西比較「多一圈」空間。'}];
-let twinIdx=-1;
-function nextTwin(){
-  twinIdx=(twinIdx+1)%TWINS.length;
-  const t=TWINS[twinIdx];
-  document.getElementById('similarArea').innerHTML=`
-    <div class="twin">
-      <div class="twincard" style="background:${t.color1}">${t.a}</div>
-      <div class="twincard" style="background:${t.color2}">${t.b}</div>
+/* ---------- 🎮 小遊戲 × 2 ---------- */
+{id:'gesture',n:'微動作記憶法指南',ic:'🤚',mode:'game',mount(el){
+  const G=[['increase','⬆️ 手往上揮'],['decrease','⬇️ 手往下壓'],['reject','🙅 推開手勢'],['accept','🤝 握手'],
+    ['stop','✋ 手掌張開'],['question','🤔 摸下巴'],['agree','👍 比讚'],['disagree','👎 比倒讚']];
+  let st=null;
+  el.innerHTML=`<p class="muted">把抽象詞綁定身體動作。看到詞彙，3 秒內選出對應手勢，8 題計分——真的有計時器在跑。</p>
+    <div class="row" style="margin-top:8px"><button class="btn accent" id="start">▶ 開始挑戰（8 題）</button></div><div id="area"></div>`;
+  const next=()=>{
+    if(st.round>=st.total){
+      $('area').innerHTML=`<div class="word">🏁 ${st.score} / ${st.total}</div>
+        <p class="muted" style="text-align:center">${st.score>=6?'手勢反應超快！身體已經記住這些詞了。':'再玩一次，讓肌肉記憶接手。'}</p>`;
+      $('start').disabled=false; return;
+    }
+    st.round++;
+    const correct=pick(G); let opts=[correct];
+    while(opts.length<4){ const c=pick(G); if(!opts.includes(c))opts.push(c); }
+    opts=shuffle(opts); st.correct=correct[0]; st.answered=false;
+    $('area').innerHTML=`<div class="word">${correct[0]}</div>
+      <div class="timerbar"><div id="tb" style="width:100%"></div></div>
+      <div class="gopts">${opts.map(o=>`<button class="gopt" data-w="${o[0]}">${o[1]}</button>`).join('')}</div>
+      <div class="score">第 ${st.round}/${st.total} 題 · 已得分 ${st.score}</div>`;
+    el.querySelectorAll('.gopt').forEach(b=>b.onclick=()=>ans(b.dataset.w,b));
+    const start=Date.now();
+    clearInterval(st.timer);
+    st.timer=setInterval(()=>{
+      const left=Math.max(0,3000-(Date.now()-start));
+      const bar=$('tb'); if(bar)bar.style.width=(left/3000*100)+'%';
+      if(left<=0){ clearInterval(st.timer); if(!st.answered)ans(null,null); }
+    },50);
+  };
+  const ans=(w,b)=>{
+    if(st.answered)return; st.answered=true; clearInterval(st.timer);
+    const ok=w===st.correct; if(ok)st.score++; else beep(220);
+    el.querySelectorAll('.gopt').forEach(x=>{ x.style.opacity='.45';
+      if(x.dataset.w===st.correct){x.style.opacity='1';x.style.borderColor='#10b981';} });
+    if(b&&!ok)b.style.borderColor='#ef4444';
+    setTimeout(next,700);
+  };
+  $('start').onclick=()=>{ $('start').disabled=true; st={round:0,score:0,total:8,timer:null}; next(); };
+}},
+{id:'palace',n:'記憶宮殿 3D 線上版',ic:'🏛️',mode:'game',mount(el){
+  const SPOTS=['🚪 大門','👟 鞋櫃','🛋️ 沙發','📺 電視','🍚 冰箱','🚿 浴室','🛏️ 床頭','🪟 窗台','💡 檯燈'];
+  const KNOW=[['H','氫'],['He','氦'],['Li','鋰'],['Be','鈹'],['B','硼'],['C','碳']];
+  let placed={},phase='place',walkIdx=0,score=0,order=[];
+  const draw=()=>{
+    if(phase==='place'){
+      const next=KNOW.find(k=>!Object.values(placed).includes(k[0]));
+      el.innerHTML=`<p class="muted">把知識點放進熟悉空間的固定位置，之後在腦中「走一遍」就能取回。這是記憶宮殿的核心。</p>
+        <div class="result info" style="margin-top:8px">${next?`把 <b>${next[0]}（${next[1]}）</b> 放到哪個位置？<br><span class="muted">想像一個誇張畫面，例如「氫氣球飄在大門口擋住你出門」</span>`:'✅ 全部放好了！'}</div>
+        <div class="room">${SPOTS.map((s,i)=>`<div class="spot${placed[i]?' filled':''}" data-i="${i}">
+          <div class="pl">${s.split(' ')[0]}</div><div>${s.split(' ')[1]}</div>
+          ${placed[i]?`<div class="it">${placed[i]}</div>`:''}</div>`).join('')}</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn accent" id="walk" ${Object.keys(placed).length<KNOW.length?'disabled':''}>🚶 開始巡邏回想</button>
+          <button class="btn ghost" id="rst">重放</button></div>
+        <p class="muted" style="margin-top:6px">已放置 ${Object.keys(placed).length} / ${KNOW.length}</p>`;
+      el.querySelectorAll('.spot').forEach(s=>s.onclick=()=>{
+        const i=+s.dataset.i; if(placed[i])return;
+        const nx=KNOW.find(k=>!Object.values(placed).includes(k[0])); if(!nx)return;
+        placed[i]=nx[0]; draw(); });
+      $('walk').onclick=()=>{ phase='walk'; walkIdx=0; score=0;
+        order=Object.keys(placed).map(Number).sort((a,b)=>a-b); draw(); };
+      $('rst').onclick=()=>{ placed={}; draw(); };
+    }else if(phase==='walk'){
+      const spotI=order[walkIdx];
+      const opts=shuffle(KNOW.map(k=>k[0])).slice(0,4);
+      if(!opts.includes(placed[spotI]))opts[0]=placed[spotI];
+      el.innerHTML=`<p class="muted">在腦中走過每個位置，回想你放了什麼。</p>
+        <div class="room">${SPOTS.map((s,i)=>`<div class="spot${i===spotI?' active':''}">
+          <div class="pl">${s.split(' ')[0]}</div><div>${s.split(' ')[1]}</div></div>`).join('')}</div>
+        <div class="result info" style="margin-top:10px">你走到 <b>${SPOTS[spotI]}</b>——這裡放了什麼？</div>
+        <div class="gopts" style="margin-top:8px">${shuffle(opts).map(o=>`<button class="gopt" data-v="${o}" style="font-size:16px">${o}（${(KNOW.find(k=>k[0]===o)||[])[1]||''}）</button>`).join('')}</div>
+        <div class="score">第 ${walkIdx+1}/${order.length} 站 · 答對 ${score}</div>`;
+      el.querySelectorAll('.gopt').forEach(b=>b.onclick=()=>{
+        if(b.dataset.v===placed[spotI])score++; else beep(220);
+        walkIdx++;
+        if(walkIdx>=order.length){ phase='done'; }
+        draw(); });
+    }else{
+      el.innerHTML=`<div class="word">🏁 ${score} / ${order.length}</div>
+        <p class="muted" style="text-align:center">${score===order.length?'完美！這條路線已經是你的記憶硬碟了。':'漏掉的位置畫面不夠誇張——重放一次，把畫面加大。'}</p>
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="btn accent" id="again">🔄 清空路線，放新知識</button></div>`;
+      $('again').onclick=()=>{ placed={}; phase='place'; draw(); };
+    }
+  };
+  draw();
+}},
+
+/* ---------- 🎵 相似聲音 × 2 ---------- */
+{id:'minimal',n:'聲音跟讀卡',ic:'🎧',mode:'sound',mount(el){
+  const PAIRS=[['ship','sheep'],['led','lead'],['bit','beat'],['full','fool'],['live','leave'],['sit','seat']];
+  let st={round:0,total:6,score:0,target:'',pair:null};
+  const draw=()=>{
+    if(!('speechSynthesis' in window)){
+      el.innerHTML='<p class="muted">⚠ 這個瀏覽器不支援語音合成，請用 Chrome / Edge / Safari 最新版。</p>'; return; }
+    if(st.round>=st.total){
+      el.innerHTML=`<div class="word">🏁 ${st.score} / ${st.total}</div>
+        <p class="muted" style="text-align:center">${st.score>=5?'耳朵很準！':'多聽慢速版，抓長短母音的差異。'}</p>
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="btn accent" id="again">🔄 再一輪</button></div>`;
+      $('again').onclick=()=>{ st={round:0,total:6,score:0}; draw(); }; return;
+    }
+    st.round++; st.pair=pick(PAIRS); st.target=st.pair[Math.random()<.5?0:1];
+    el.innerHTML=`<p class="muted">瀏覽器真的會發音。聽一對容易混淆的字其中一個，選出你聽到的，再跟讀 3 次。</p>
+      <p class="muted" style="margin-top:8px">第 ${st.round}/${st.total} 輪 · 答對 ${st.score}</p>
+      <div class="row" style="justify-content:center;margin-top:8px"><button class="btn accent" id="play">🔊 再播一次</button></div>
+      <div class="row" style="justify-content:center;margin-top:10px" id="opts">
+        ${st.pair.map(w=>`<button class="pairbtn" data-w="${w}">${w}</button>`).join('')}</div>`;
+    $('play').onclick=()=>speak(st.target,.9);
+    speak(st.target,.9);
+    el.querySelectorAll('.pairbtn').forEach(b=>b.onclick=()=>{
+      if(b.dataset.w===st.target)st.score++;
+      el.querySelectorAll('.pairbtn').forEach(x=>x.classList.add(x.dataset.w===st.target?'correct':'wrong'));
+      setTimeout(()=>{
+        el.insertAdjacentHTML('beforeend',
+          `<div class="result info" style="margin-top:10px">正解：<b>${st.target}</b>——跟讀 3 次，感受母音長短</div>
+           <div class="row" style="justify-content:center;margin-top:8px">
+             <button class="btn ghost" id="slow">🐢 慢速跟讀</button><button class="btn" id="nx">下一輪 →</button></div>`);
+        $('slow').onclick=()=>speak(st.target,.55);
+        $('nx').onclick=draw;
+      },400); });
+  };
+  draw();
+}},
+{id:'rap',n:'Rap 節奏單字覆誦',ic:'🎤',mode:'sound',mount(el){
+  const WORDS=[['accomplish','ac-COM-plish',1],['opportunity','op-por-TU-ni-ty',2],['responsible','re-SPON-si-ble',1],
+    ['communication','com-mu-ni-CA-tion',3],['development','de-VEL-op-ment',1],['understand','un-der-STAND',2]];
+  let cur=pick(WORDS),bpm=90,timer=null,idx=0,playing=false;
+  const syl=()=>cur[1].split('-');
+  const draw=()=>{
+    el.innerHTML=`<p class="muted">把長單字拆成音節與重音，配節拍器在拍點上念出來——用節奏的肌肉記憶記住發音。</p>
+      <div class="word">${cur[0]}</div>
+      <div class="row" style="justify-content:center">
+        ${syl().map((s,i)=>`<span class="chipline" id="s${i}" style="font-size:15px;${s===s.toUpperCase()?'background:var(--accent);color:#fff;font-weight:800':''}">${s}</span>`).join('')}
+      </div>
+      <p class="muted" style="text-align:center;margin-top:4px">大寫＝重音音節（第 ${cur[2]+1} 拍加重）</p>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <span class="muted">節奏：</span>
+        ${[70,90,120].map(b=>`<button class="tile${b===bpm?' sel':''}" data-b="${b}">${b} BPM</button>`).join('')}
+      </div>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button class="btn accent" id="go">${playing?'⏹ 停止':'▶ 開始節拍跟讀'}</button>
+        <button class="btn ghost" id="say">🔊 聽完整發音</button>
+        <button class="btn ghost" id="nx">🎲 換一個字</button></div>
+      <p class="muted" style="text-align:center;margin-top:8px">跟著節拍器，在每個拍點念一個音節，重音那拍要更用力</p>`;
+    el.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{ bpm=+b.dataset.b; stop(); draw(); });
+    $('go').onclick=()=>playing?stop():start();
+    $('say').onclick=()=>speak(cur[0],.8);
+    $('nx').onclick=()=>{ stop(); const o=cur; while(cur===o)cur=pick(WORDS); draw(); };
+  };
+  const stop=()=>{ clearInterval(timer); timer=null; playing=false;
+    syl().forEach((_,i)=>{const e=$('s'+i); if(e)e.style.outline='';});
+    const g=$('go'); if(g)g.textContent='▶ 開始節拍跟讀'; };
+  const start=()=>{
+    playing=true; idx=0; $('go').textContent='⏹ 停止';
+    const iv=60000/bpm;
+    timer=setInterval(()=>{
+      syl().forEach((_,i)=>{const e=$('s'+i); if(e)e.style.outline='';});
+      const e=$('s'+idx); if(e)e.style.outline='3px solid #f59e0b';
+      beep(idx===cur[2]?1200:700);   // 重音拍用高音提示
+      speak(syl()[idx],1.1);
+      idx=(idx+1)%syl().length;
+    },iv);
+  };
+  draw();
+}},
+
+/* ---------- 🔍 相似事物 × 1 ---------- */
+{id:'twin',n:'相似概念拆解',ic:'👯',mode:'similar',mount(el){
+  const TWINS=[
+   {a:'affect',b:'effect',c1:'#6366f1',c2:'#8b5cf6',h:'affect 是動詞（影響），effect 通常是名詞（結果／效果）。',m:'💡 Actions AFFECT, Effects are the End result —— a 開頭是動作(Action)，e 開頭是結果(End)。'},
+   {a:'its',b:"it's",c1:'#0ea5e9',c2:'#06b6d4',h:"its 是所有格（它的），it's 是 it is / it has 的縮寫。",m:"💡 有撇號(')的一律是縮寫，不是所有格——所有格從不用撇號。"},
+   {a:'then',b:'than',c1:'#f59e0b',c2:'#f97316',h:'then 表示時間順序（然後），than 用於比較（比…）。',m:'💡 thAn 有 a，用在比較(compAre)；then 是接下來、然後。'},
+   {a:'lose',b:'loose',c1:'#ef4444',c2:'#ec4899',h:'lose 是動詞（失去，一個 o），loose 是形容詞（鬆的，兩個 o）。',m:'💡 loose 比 lose 多一個 o，就像「鬆」開的東西多一圈空間。'},
+   {a:'principal',b:'principle',c1:'#8b5cf6',c2:'#a855f7',h:'principal 是校長／主要的，principle 是原則／原理。',m:'💡 The principAL is your PAL（校長是你的朋友）；principLE 是 ruLE（規則）。'}];
+  let i=-1;
+  const draw=()=>{
+    i=(i+1)%TWINS.length; const t=TWINS[i];
+    el.innerHTML=`<p class="muted">兩個超容易搞混的字，先自己想差異，再翻牌對答案＋拿聯想鉤子。重點不是背單字，是記住「差異點」。</p>
+      <div class="twin">
+        <div class="twincard" style="background:${t.c1}">${t.a}</div>
+        <div class="twincard" style="background:${t.c2}">${t.b}</div></div>
+      <div class="row" style="margin-top:10px;justify-content:center">
+        <button class="btn accent" id="rev">🔍 翻牌對答案</button>
+        <button class="btn ghost" id="nx">換下一組 →</button></div>
+      <div class="hint" id="hint"><p>${t.h}</p><p>${t.m}</p></div>`;
+    $('rev').onclick=()=>$('hint').style.display='block';
+    $('nx').onclick=draw;
+  };
+  draw();
+}},
+
+/* ---------- 🛠️ 結構工具 × 3 ---------- */
+{id:'table',n:'資料轉表格訓練',ic:'📊',mode:'tool',mount(el){
+  const MESSY='go went gone / see saw seen / eat ate eaten / take took taken / write wrote written / speak spoke spoken（全部打散，自己分類填回三欄）';
+  const H=['原形','過去式','過去分詞'];
+  const A=[['go','went','gone'],['see','saw','seen'],['eat','ate','eaten'],['take','took','taken'],['write','wrote','written'],['speak','spoke','spoken']];
+  const build=()=>{
+    let h='<tr>'+H.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+    for(let r=0;r<6;r++)h+='<tr>'+H.map((_,c)=>`<td><input type="text"></td>`).join('')+'</tr>';
+    $('mk').innerHTML=h; $('ans').style.display='none';
+  };
+  el.innerHTML=`<p class="muted">把打亂的資料自己整理成表格——重點是動手建立結構，不是被動看 AI 講解。</p>
+    <div class="messy">${MESSY}</div><table class="mktable" id="mk"></table>
+    <div class="row" style="margin-top:10px"><button class="btn accent" id="rev">👀 顯示範例答案</button>
+      <button class="btn ghost" id="rst">清空重填</button></div>
+    <table class="mktable" id="ans" style="display:none;margin-top:10px"></table>`;
+  build();
+  $('rev').onclick=()=>{ let h='<tr>'+H.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+    A.forEach(r=>h+='<tr>'+r.map(w=>`<td>${w}</td>`).join('')+'</tr>');
+    $('ans').innerHTML=h; $('ans').style.display='table'; };
+  $('rst').onclick=build;
+}},
+{id:'highlight',n:'螢光色階與符號筆記術',ic:'🖍️',mode:'tool',mount(el){
+  const TEXT='光合作用是植物把光能轉換成化學能的過程。它主要發生在葉綠體中。整個過程分成光反應和暗反應兩階段。光反應在類囊體膜上進行，把水分解並產生氧氣。暗反應則在基質中固定二氧化碳。因為有光合作用，地球上的氧氣才能持續補充。所以它是幾乎所有生態系的能量源頭。';
+  const SENT=TEXT.split('。').filter(Boolean).map(s=>s+'。');
+  let color='g';
+  const COLORS={g:['綠','定義','#bbf7d0'],p:['粉','常考','#fbcfe8'],y:['黃','因果','#fef08a']};
+  el.innerHTML=`<p class="muted">捨棄從頭抄到尾，改用 3 色原則把課文變成「藏寶圖」。選一個顏色，點句子標記它。</p>
+    <div class="row" style="margin-top:8px">
+      ${Object.entries(COLORS).map(([k,[n,use,c]])=>`<button class="tile" data-c="${k}" style="background:${c}">${n}＝${use}</button>`).join('')}
     </div>
-    <div class="row" style="margin-top:10px;justify-content:center">
-      <button class="btn accent" onclick="revealTwin()">🔍 我猜猜看，翻牌對答案</button>
-      <button class="btn ghost" onclick="nextTwin()">換下一組 →</button>
+    <div class="hltext" id="tx" style="margin-top:12px;font-size:14px;line-height:2">
+      ${SENT.map((s,i)=>`<span data-i="${i}">${s}</span>`).join('')}</div>
+    <div class="row" style="margin-top:12px"><button class="btn accent" id="sum">📋 產生我的藏寶圖摘要</button>
+      <button class="btn ghost" id="clr">清除標記</button></div>
+    <div id="out"></div>`;
+  const marks={};
+  const sync=()=>el.querySelectorAll('[data-c]').forEach(b=>
+    b.style.outline=b.dataset.c===color?'3px solid var(--primary)':'');
+  el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ color=b.dataset.c; sync(); }); sync();
+  el.querySelectorAll('#tx span').forEach(s=>s.onclick=()=>{
+    const i=s.dataset.i;
+    if(marks[i]===color){ delete marks[i]; s.className=''; }
+    else { marks[i]=color; s.className=color; } });
+  $('sum').onclick=()=>{
+    const keys=Object.keys(marks);
+    if(!keys.length){ $('out').innerHTML='<div class="result no">先標記幾個句子——標記的過程本身就是記憶編碼。</div>'; return; }
+    let h='<div class="result info"><b>🗺️ 你的藏寶圖（複習時只看這個，不要重讀課文）</b>';
+    Object.entries(COLORS).forEach(([k,[n,use,c]])=>{
+      const items=keys.filter(i=>marks[i]===k);
+      if(items.length)h+=`<div style="margin-top:8px"><b style="background:${c};padding:1px 6px;border-radius:4px">${n}｜${use}</b><br>`
+        +items.map(i=>'・'+esc(SENT[i])).join('<br>')+'</div>';
+    });
+    $('out').innerHTML=h+'</div>';
+  };
+  $('clr').onclick=()=>{ Object.keys(marks).forEach(k=>delete marks[k]);
+    el.querySelectorAll('#tx span').forEach(s=>s.className=''); $('out').innerHTML=''; };
+}},
+{id:'pomodoro',n:'番茄鐘走讀與空間轉換術',ic:'🍅',mode:'tool',mount(el){
+  const CORNERS=['🪟 窗台','🪑 書桌','🛏️ 床頭','🛋️ 沙發'];
+  let subs=['','','',''],timer=null,left=0,mode='study',ci=0,running=false;
+  el.innerHTML=`<p class="muted">把不同科目分配到房間不同角落，用「讀 20 分／走動 5 分」循環——移動時換角落，讓空間變成記憶的分類標籤。</p>
+    <div id="setup">
+      ${CORNERS.map((c,i)=>`<div class="row" style="margin-top:6px"><span style="width:76px;font-size:13px">${c}</span>
+        <input type="text" class="sub" data-i="${i}" placeholder="放什麼科目？例如：英文單字"></div>`).join('')}
+      <div class="row" style="margin-top:10px"><button class="btn accent" id="start">▶ 開始走讀循環</button></div>
+      <p class="muted" style="margin-top:6px">至少填一個角落。（測試用：可改成 1 分鐘快速體驗）</p>
+      <div class="row"><label class="muted"><input type="checkbox" id="fast"> 快速模式（1 分／15 秒）</label></div>
     </div>
-    <div class="hint" id="twinHint"><p>${t.hint}</p><p>${t.mnemonic}</p></div>`;
-}
-function revealTwin(){ document.getElementById('twinHint').style.display='block'; }
+    <div id="run" style="display:none"></div>`;
+  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const tick=()=>{
+    left--;
+    if(left<=0){
+      beep(mode==='study'?520:880);
+      if(mode==='study'){ mode='break'; left=$('fast').checked?15:5*60;
+        ci=(ci+1)%subs.filter(Boolean).length; }
+      else { mode='study'; left=$('fast').checked?60:20*60; }
+    }
+    render();
+  };
+  const render=()=>{
+    const active=subs.filter(Boolean);
+    const cur=CORNERS[subs.findIndex(s=>s===active[ci])];
+    $('run').innerHTML=`
+      <div class="word">${fmt(left)}</div>
+      <div class="result ${mode==='study'?'ok':'info'}" style="text-align:center">
+        ${mode==='study'?`📖 專注讀書中<br><b>${esc(cur)} ｜ ${esc(active[ci])}</b>`
+          :`🚶 起來走動！<br>走到下一個角落：<b>${esc(CORNERS[subs.findIndex(s=>s===active[ci])])} ｜ ${esc(active[ci])}</b>`}
+      </div>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button class="btn ghost" id="stop">⏹ 結束循環</button></div>
+      <div class="result info" style="margin-top:10px"><b>你的空間分類表</b><br>
+        ${subs.map((s,i)=>s?`${CORNERS[i]} → ${esc(s)}`:'').filter(Boolean).join('<br>')}
+        <br><span class="muted">複習時先想「我在哪個角落讀的」，用空間線索找回記憶。</span></div>`;
+    $('stop').onclick=()=>{ clearInterval(timer); running=false;
+      $('run').style.display='none'; $('setup').style.display='block'; };
+  };
+  $('start').onclick=()=>{
+    subs=[...el.querySelectorAll('.sub')].map(i=>i.value.trim());
+    if(!subs.filter(Boolean).length){ alert('至少填一個角落要讀什麼'); return; }
+    ci=0; mode='study'; left=$('fast').checked?60:20*60; running=true;
+    $('setup').style.display='none'; $('run').style.display='block';
+    render(); clearInterval(timer); timer=setInterval(tick,1000);
+  };
+}}
+];
 
-/* ============ 6. 結構工具：資料轉表格 ============ */
-const MESSY='go went gone / see saw seen / eat ate eaten / take took taken / write wrote written / speak spoke spoken（全部打散了，自己分類填回三欄表格）';
-const HEADERS=['原形','過去式','過去分詞'];
-const ANSWER=[['go','went','gone'],['see','saw','seen'],['eat','ate','eaten'],['take','took','taken'],['write','wrote','written'],['speak','spoke','spoken']];
-function buildEmptyTable(){
-  document.getElementById('messyData').textContent=MESSY;
-  let html='<tr>'+HEADERS.map(h=>`<th>${h}</th>`).join('')+'</tr>';
-  for(let r=0;r<6;r++){ html+='<tr>'+HEADERS.map((_,c)=>`<td><input type="text" data-r="${r}" data-c="${c}"></td>`).join('')+'</tr>'; }
-  document.getElementById('mkTable').innerHTML=html;
-}
-function resetTable(){ buildEmptyTable(); document.getElementById('answerTable').style.display='none'; }
-function revealTable(){
-  let html='<tr>'+HEADERS.map(h=>`<th>${h}</th>`).join('')+'</tr>';
-  ANSWER.forEach(row=>{ html+='<tr>'+row.map(w=>`<td>${w}</td>`).join('')+'</tr>'; });
-  const t=document.getElementById('answerTable'); t.innerHTML=html; t.style.display='table';
-}
-buildEmptyTable();
+/* 給 AI 卡的 setup 用的隨機工具 */
+window.__pickTopic=()=>pick(TOPICS);
+window.__pickMeme=()=>pick(MEME_ITEMS);
 
-/* 初始化 */
-initSound();
-nextTwin();
+/* ================= 選單 / 路由 ================= */
+let activeMode='all';
+function renderModes(){
+  const all=[['all',{label:'全部',emoji:'🗂️',color:'#0e3a36'}]].concat(Object.entries(MODES));
+  $('modeRow').innerHTML=all.map(([k,m])=>{
+    const n=k==='all'?EX.length:EX.filter(e=>e.mode===k).length;
+    return `<button class="mchip${k===activeMode?' on':''}" data-k="${k}" style="${k===activeMode?'background:'+m.color:''}">${m.emoji} ${m.label} ${n}</button>`;
+  }).join('');
+  $('modeRow').querySelectorAll('.mchip').forEach(b=>b.onclick=()=>{ activeMode=b.dataset.k; renderModes(); renderGrid(); });
+}
+function renderGrid(){
+  const list=activeMode==='all'?EX:EX.filter(e=>e.mode===activeMode);
+  $('grid').innerHTML=list.map(e=>{ const m=MODES[e.mode];
+    return `<button class="gcard" data-id="${e.id}"><span class="ic">${e.ic}</span><b>${e.n}</b>
+      <span class="badge" style="background:${m.color}">${m.emoji} ${m.label}</span></button>`; }).join('');
+  $('grid').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>open(b.dataset.id));
+}
+function open(id){
+  const e=EX.find(x=>x.id===id); if(!e)return;
+  const m=MODES[e.mode];
+  $('pTitle').textContent=e.ic+' '+e.n;
+  $('pBadge').textContent=m.emoji+' '+m.label; $('pBadge').style.background=m.color;
+  $('gridView').style.display='none'; $('playView').style.display='block';
+  $('pBody').innerHTML=''; e.mount($('pBody'));
+  window.scrollTo(0,0); location.hash=id;
+}
+function backToGrid(){
+  try{ speechSynthesis.cancel(); }catch(e){}
+  $('pBody').innerHTML='';                       // 卸載，順便停掉裡面的 timer/串流 UI
+  $('playView').style.display='none'; $('gridView').style.display='block';
+  location.hash=''; window.scrollTo(0,0);
+}
+renderModes(); renderGrid();
+if(location.hash){ const id=location.hash.slice(1); if(EX.find(x=>x.id===id))open(id); }
 </script>
 </body>
 </html>
