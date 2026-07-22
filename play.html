@@ -176,16 +176,29 @@ const CHAT_URL='https://ycgjzrvfzaqaicvdtagq.supabase.co/functions/v1/chat';
 const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ2p6cnZmemFxYWljdmR0YWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTcsImV4cCI6MjA5NTk4NDAxN30.cf15HuN44lbAqYWhjwM5M17l7U_tymEK-_ob8B8wNqQ';
 const RETRYABLE=[429,500,502,503,504];
 
+// memolingua 8 天賦 → fluent-ai chat function 認得的 genius 型 + VARK 風格。
+// chat function 內建依這兩個值調整教法（視覺型多用畫面、聽覺型強調發音…），
+// 只要傳過去，AI 的教法就會真的隨天賦改變——這是產品的核心賣點。
+const TALENT2AI={
+ img:['visionary','visual'], snd:['melodist','auditory'], txt:['architect','reading'],
+ act:['explorer','kinesthetic'], soc:['performer','auditory'], sys:['analyst','reading'],
+ cre:['narrator','auditory'], biz:['connector','reading']};
+
 // Gemini 免費層偶爾短暫過載回 500/429，屬暫時性 → 自動重試，別讓使用者卡住。
 async function streamChat(messages,settings,onDelta,onDone,onError,onRetry){
   const MAX_TRIES=3; let resp,lastErr='';
+  // 把當前天賦轉成 AI 認得的參數，讓 AI 依天賦教（沒天賦就用通用教法）
+  const tk=(typeof currentTalent==='function')?currentTalent():null;
+  const g=tk&&TALENT2AI[tk]?TALENT2AI[tk]:null;
+  const body={messages,settings};
+  if(g){ body.geniusType=g[0]; body.learningStyle=g[1]; }
   for(let attempt=1;attempt<=MAX_TRIES;attempt++){
     const abort=new AbortController();
     const timeout=setTimeout(()=>abort.abort(),45000);
     try{
       resp=await fetch(CHAT_URL,{method:'POST',
         headers:{'Content-Type':'application/json',Authorization:'Bearer '+ANON},
-        body:JSON.stringify({messages,settings}),signal:abort.signal});
+        body:JSON.stringify(body),signal:abort.signal});
       clearTimeout(timeout);
     }catch(e){ clearTimeout(timeout);
       lastErr=(e&&e.name==='AbortError')?'AI 逾時沒有回應':'無法連線到 AI 伺服器'; resp=null; }
@@ -245,45 +258,79 @@ function beep(freq){
 /* ========= AI 對話工廠：8 張 AI 卡共用同一套串流邏輯 ========= */
 function aiMount(cfg){
   return function(el){
+    // 顯示 AI 是否已依天賦調整教法（讓核心賣點被看見）
+    const tk=currentTalent(), tName=tk&&TALENTS[tk]?TALENTS[tk].name:null;
+    const adaptNote=tName
+      ? `<div class="result info" style="margin-top:0;margin-bottom:4px">🤖 AI 已依你的天賦「<b>${tName}</b>」調整教法</div>`
+      : `<div class="muted" style="font-size:12px">💡 <a href="scale.html" style="color:var(--accent)">做天賦測驗</a>後，AI 會依你的型調整教法</div>`;
+    const ROUNDS=cfg.rounds||3;   // 練幾回合算完成（可由各卡覆寫）
     el.innerHTML=`
       <p class="muted">${cfg.desc}</p>
+      ${adaptNote}
       ${cfg.setup||''}
       <div class="chatlog" id="log"></div>
       <div class="typing" id="typing"></div>
       <div class="row" style="margin-top:8px"><button class="btn accent" id="startBtn">▶ ${cfg.startLabel||'開始'}</button></div>
-      <div class="row" style="margin-top:8px;display:none" id="inputRow">
-        <input type="text" id="inp" placeholder="${cfg.placeholder||'輸入你的回覆…'}">
-        <button class="btn" id="sendBtn">送出</button>
-      </div>`;
-    let msgs=[], scenario='';
+      <div id="inputRow" style="display:none">
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="inp" placeholder="${cfg.placeholder||'輸入你的回覆…'}">
+          <button class="btn" id="sendBtn">送出</button>
+        </div>
+        <div class="row" style="margin-top:6px;justify-content:space-between">
+          <span class="muted" id="rounds"></span>
+          <button class="btn ghost sm" id="finishBtn" style="padding:6px 12px;font-size:12px">✓ 我練完了</button>
+        </div>
+      </div>
+      <div id="doneBox"></div>`;
+    let msgs=[], scenario='', turns=0, done=false;
     const bub=(who,text)=>{
       const d=document.createElement('div'); d.className='bub '+who;
       d.innerHTML=(who==='ai'?'🤖 ':'🙋 ')+styleCorr(text);
       $('log').appendChild(d); $('log').scrollTop=$('log').scrollHeight; return d;
     };
     const settings=()=>({language:'english',scenario,difficulty:'intermediate',tone:cfg.tone||'casual',mode:'practice',speed:'normal'});
+    const updateRounds=()=>{ const r=$('rounds'); if(!r)return;
+      r.textContent=turns>=ROUNDS?`已練 ${turns} 回合 · 可以收工了 👍`:`已練 ${turns} / ${ROUNDS} 回合`; };
     function run(){
       let acc=''; const b=bub('ai','');
       $('typing').textContent='🤖 思考中…';
       streamChat(msgs,settings(),
         d=>{acc+=d; b.innerHTML='🤖 '+styleCorr(acc);},
         ()=>{ msgs.push({role:'assistant',content:acc}); $('typing').textContent='';
-              $('inputRow').style.display='flex'; },
+              $('inputRow').style.display='block'; },
         e=>{ $('typing').textContent='⚠ '+e; $('startBtn').disabled=false; },
         (n,m)=>{ $('typing').textContent=`🤖 AI 忙碌中，重試 ${n}/${m}…`; });
+    }
+    function finish(){
+      if(done)return; done=true;
+      const ex=currentEx||{id:'',n:'這張卡'};
+      recordPlay(ex.id,{v:turns,t:turns+' 回合'});   // 記 complete + 回合數當成績
+      $('inputRow').style.display='none';
+      $('doneBox').innerHTML=`<div class="result ok" style="margin-top:10px">
+        🎉 完成「${ex.n}」！這次練了 ${turns} 回合。${turns>=ROUNDS?'夠扎實。':'下次可以多聊幾輪，練得更深。'}
+        <div class="row" style="margin-top:8px">
+          <button class="btn accent sm" id="againBtn">🔄 再練一次</button>
+          <button class="btn ghost sm" id="backBtn2">← 挑別張卡</button></div></div>`;
+      $('againBtn').onclick=()=>{ done=false; $('doneBox').innerHTML=''; $('startBtn').disabled=false;
+        $('startBtn').style.display='block'; $('log').innerHTML=''; turns=0; };
+      $('backBtn2').onclick=()=>backToGrid();
     }
     $('startBtn').onclick=()=>{
       const err=cfg.validate?cfg.validate():null;
       if(err){ $('typing').textContent='⚠ '+err; return; }
       scenario=cfg.scenario();
       msgs=[{role:'user',content:cfg.kickoff||'開始，請照你的角色設定進行第一輪。'}];
-      $('log').innerHTML=''; $('startBtn').disabled=true; run();
+      $('log').innerHTML=''; $('doneBox').innerHTML=''; turns=0; done=false;
+      $('startBtn').disabled=true; $('startBtn').style.display='none'; updateRounds(); run();
     };
-    $('sendBtn').onclick=()=>{
-      const v=$('inp').value.trim(); if(!v)return;
-      bub('me',v); msgs.push({role:'user',content:v}); $('inp').value=''; run();
+    const send=()=>{
+      const v=$('inp').value.trim(); if(!v||done)return;
+      bub('me',v); msgs.push({role:'user',content:v}); $('inp').value='';
+      turns++; updateRounds(); run();
     };
-    $('inp').onkeydown=e=>{ if(e.key==='Enter')$('sendBtn').onclick(); };
+    $('sendBtn').onclick=send;
+    $('finishBtn').onclick=finish;
+    $('inp').onkeydown=e=>{ if(e.key==='Enter')send(); };
   };
 }
 
@@ -1155,8 +1202,10 @@ function renderGrid(){
   $('grid').innerHTML=html;
   $('grid').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>open(b.dataset.id));
 }
+let currentEx=null;
 function open(id){
   const e=EX.find(x=>x.id===id); if(!e)return;
+  currentEx=e;                          // aiMount 的 finish() 用來記 complete
   const m=MODES[e.mode];
   $('pTitle').textContent=e.ic+' '+e.n;
   $('pBadge').textContent=m.emoji+' '+m.label; $('pBadge').style.background=m.color;
