@@ -379,7 +379,14 @@ const PLACEHOLDER={
   minimal:'{"a":"ship","b":"sheep"}',
   twin:'{"a":"affect","b":"effect","h":"差異說明","m":"💡 記憶鉤子"}',
   chain:'{"t":"標題","items":["因","果","最終結果"]}',
-  root:'{"w":"predict","m":"預測（pre 事先 + dict 說）"}'};
+  root:'{"w":"predict","m":"預測（pre 事先 + dict 說）"}',
+  hook:'{"w":"soothing"}',
+  story:'{"theme":"機場趕飛機","words":["panicked","boarding","delayed","luggage","relieved"]}',
+  feynman:'{"t":"光合作用"}',
+  impromptu:'{"task":"用今天學的 3 個詞造一個投訴信開頭"}',
+  meme:'{"item":"維也納會議 1815 年"}',
+  rp:'{"role":"時空偵探","words":["crash","panic","invest","recover","warn"]}',
+  bug:'{"text":"二次大戰爆發於 1945 年，起因是珍珠港事變。"}'};
 async function rest(path,opt){
   const r=await fetch(SUPA+'/rest/v1/'+path,Object.assign({headers:H()},opt||{}));
   if(r.status===404)return {__missing:true};

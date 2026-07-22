@@ -134,6 +134,7 @@
     </div>
     <div id="talentBanner"></div>
     <div class="prog" id="progress"></div>
+    <div id="reviewBadge"></div>
     <div class="modeRow" id="modeRow"></div>
     <div class="grid" id="grid"></div>
     <a class="cta" href="gym.html">🏋️ 看每張卡的完整訓練設計（gym）</a>
@@ -343,19 +344,38 @@ function aiMount(cfg){
   };
 }
 
-/* ================= 題庫 ================= */
-const HOOK_WORDS=['soothing','reluctant','ambiguous','persistent','genuine','overwhelmed','skeptical','resourceful'];
-const STORY_SETS=[
+/* ================= 題庫 =================
+   下面是各 AI 卡的「內建題庫」（後端讀不到時的 fallback）。
+   頁面載入時 preloadAIContent() 會用資料庫的版本覆蓋（後台可編輯）。 */
+let HOOK_WORDS=['soothing','reluctant','ambiguous','persistent','genuine','overwhelmed','skeptical','resourceful'];
+let STORY_SETS=[
  {theme:'機場趕飛機',words:['panicked','boarding','delayed','luggage','relieved']},
  {theme:'餐廳客訴',words:['refund','undercooked','apologize','manager','compensation']},
  {theme:'面試現場',words:['nervous','qualification','strength','salary','opportunity']}];
-const TOPICS=['光合作用','複利效果','供需法則','牛頓第三定律','關係子句','熵'];
-const IMPROMPTU=['用今天學的 3 個詞造一個投訴信開頭','30 秒解釋一個公式給小學生聽','用 refund 抱怨一個爛商品','描述你昨天做的一件事，全程用過去式'];
-const MEME_ITEMS=['維也納會議 1815 年','法國大革命 1789 年','光合作用的三步驟','水的沸點 100°C'];
-const RP_SETS=[
+let TOPICS=['光合作用','複利效果','供需法則','牛頓第三定律','關係子句','熵'];
+let IMPROMPTU=['用今天學的 3 個詞造一個投訴信開頭','30 秒解釋一個公式給小學生聽','用 refund 抱怨一個爛商品','描述你昨天做的一件事，全程用過去式'];
+let MEME_ITEMS=['維也納會議 1815 年','法國大革命 1789 年','光合作用的三步驟','水的沸點 100°C'];
+let RP_SETS=[
  {role:'回到 1929 年的時空偵探',words:['crash','panic','invest','recover','warn']},
  {role:'跟外國客戶談判的 PM',words:['deadline','budget','compromise','deliver','risk']}];
-const BUG_TEXTS=['二次大戰爆發於 1945 年，起因是珍珠港事變。','光合作用發生在粒線體，把氧氣轉換成二氧化碳。','複利的意思是每年拿到一樣多的固定利息。'];
+let BUG_TEXTS=['二次大戰爆發於 1945 年，起因是珍珠港事變。','光合作用發生在粒線體，把氧氣轉換成二氧化碳。','複利的意思是每年拿到一樣多的固定利息。'];
+
+// 從資料庫載入 AI 卡題庫覆蓋內建值（後台編輯後即時生效）；讀不到就保留內建。
+async function preloadAIContent(){
+  const map=async(ex,mapper,setter)=>{
+    const rows=await getContent(ex,null);
+    if(Array.isArray(rows)&&rows.length){ const v=rows.map(mapper).filter(Boolean); if(v.length)setter(v); }
+  };
+  await Promise.all([
+    map('hook',    p=>p.w,   v=>HOOK_WORDS=v),
+    map('story',   p=>p.theme&&p.words?{theme:p.theme,words:p.words}:null, v=>STORY_SETS=v),
+    map('feynman', p=>p.t,   v=>TOPICS=v),
+    map('impromptu',p=>p.task,v=>IMPROMPTU=v),
+    map('meme',    p=>p.item,v=>MEME_ITEMS=v),
+    map('rp',      p=>p.role&&p.words?{role:p.role,words:p.words}:null, v=>RP_SETS=v),
+    map('bug',     p=>p.text,v=>BUG_TEXTS=v),
+  ]);
+}
 
 /* ================= 22 張訓練卡 ================= */
 const EX=[
@@ -927,6 +947,7 @@ const EX=[
       const [a,b]=flipped;
       if(deck[a].k===deck[b].k&&deck[a].side!==deck[b].side){
         matched.add(deck[a].k); beep(900); flipped=[]; lock=false;
+        const p=pool[deck[a].k]; addToReview(p.en,p.zh);   // 配對到的字進複習本
         if(matched.size===pool.length)recordPlay('flip',{v:100-moves,t:moves+' 步完成'});
         setTimeout(draw,120);
       }else{ beep(220); setTimeout(()=>{ flipped=[]; lock=false; draw(); },700); }
@@ -956,7 +977,7 @@ const EX=[
     st.i++;
     const q=pick(pool);
     const opts=shuffle([q.a,...q.d]);
-    st.cur=q.a; st.answered=false;
+    st.cur=q.a; st.q=q; st.answered=false;
     el.innerHTML=`<div class="row" style="justify-content:space-between">
         <span class="muted">第 ${st.i}/${TOTAL} 題</span>
         <span class="muted">得分 ${st.score}${st.combo>1?'　🔥 '+st.combo+' 連擊':''}</span></div>
@@ -976,7 +997,7 @@ const EX=[
     if(st.answered)return; st.answered=true; clearInterval(st.timer);
     const ok=v===st.cur;
     if(ok){ st.score++; st.combo++; st.best=Math.max(st.best,st.combo); beep(1000); }
-    else { st.combo=0; beep(220); }
+    else { st.combo=0; beep(220); addToReview(st.q.w,st.q.a,true); }  // 答錯的字優先進複習本
     el.querySelectorAll('.gopt').forEach(x=>{ x.style.opacity='.45';
       if(x.dataset.v===st.cur){x.style.opacity='1';x.style.borderColor='#10b981';} });
     if(b&&!ok)b.style.borderColor='#ef4444';
@@ -1147,6 +1168,42 @@ function recordPlay(id,score){
   logEvent(id,score?'complete':'open',score);
 }
 window.recordPlay=recordPlay;
+
+/* ===== D：難字回流複習本（localStorage，無需登入）=====
+   遊戲裡遇到/答錯的字丟進複習本，review.html 用間隔複習排程。
+   priority=true（答錯的字）→ 立即到期，優先複習。 */
+const LS_REVIEW='ml_review_deck';
+function addToReview(en,zh,priority){
+  if(!en)return;
+  try{
+    const d=JSON.parse(localStorage.getItem(LS_REVIEW)||'{}');
+    const k=en.toLowerCase().trim();
+    if(!d[k]){ d[k]={en:en.trim(),zh:zh||'',ease:2.5,interval:0,reps:0,lapses:0,due:Date.now(),added:Date.now()}; }
+    else if(zh&&!d[k].zh){ d[k].zh=zh; }         // 補上翻譯
+    if(priority)d[k].due=Date.now();             // 答錯的字馬上排進複習
+    localStorage.setItem(LS_REVIEW,JSON.stringify(d));
+    updateReviewBadge();
+  }catch(e){}
+}
+function dueReviewCount(){
+  try{ const d=JSON.parse(localStorage.getItem(LS_REVIEW)||'{}');
+    return Object.values(d).filter(c=>c.due<=Date.now()).length;
+  }catch(e){ return 0; }
+}
+function updateReviewBadge(){
+  const el=$('reviewBadge'); if(!el)return;
+  const n=dueReviewCount(), total=(()=>{try{return Object.keys(JSON.parse(localStorage.getItem(LS_REVIEW)||'{}')).length;}catch(e){return 0;}})();
+  el.innerHTML= total
+    ? `<a href="review.html" style="text-decoration:none;display:block">
+        <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin-top:10px;background:#fff">
+          <span style="font-size:22px">📅</span>
+          <div style="flex:1"><b style="font-size:14px;color:var(--primary)">生詞複習本</b>
+            <div style="font-size:12px;color:var(--sub)">收集了 ${total} 個生詞${n?`　·　<b style="color:#ef4444">${n} 個待複習</b>`:'　·　今日已複習完'}</div></div>
+          <span style="font-size:18px;color:var(--sub)">→</span></div></a>`
+    : '';
+}
+window.addToReview=addToReview;
+
 function refreshProgress(){
   const l=loadLog(); const done=EX.filter(e=>l[e.id]).length;
   const el=$('progress'); if(!el)return;
@@ -1230,7 +1287,8 @@ function backToGrid(){
   location.hash=''; window.scrollTo(0,0);
   renderTalent(); refreshProgress(); renderGrid();  // 回到選單時刷新紀錄
 }
-renderTalent(); renderModes(); renderGrid(); refreshProgress();
+renderTalent(); renderModes(); renderGrid(); refreshProgress(); updateReviewBadge();
+preloadAIContent();   // 背景載入 AI 卡題庫（後台可編輯版）；不阻塞畫面
 if(location.hash){ const id=location.hash.slice(1); if(EX.find(x=>x.id===id))open(id); }
 // 支援從課表/報告用 #id 直接開卡（同頁換 hash 不會重載，所以要監聽）
 window.addEventListener('hashchange',()=>{
