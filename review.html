@@ -129,6 +129,7 @@ function doGrade(q){
   const d=load();
   d[cur]=grade(d[cur],q); save(d);
   queue.shift();
+  refreshKPI();   // 即時更新頂部「待複習」數字
   nextCard();
 }
 function renderDone(justFinished){
