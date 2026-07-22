@@ -51,6 +51,17 @@ export default function Home() {
           style={{ marginLeft: 'auto', fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>登出</button>
       </header>
 
+      <a href="https://fluent-ai-mu.vercel.app" style={{ textDecoration: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'linear-gradient(135deg,#0e3a36,#14b8a6)', color: '#fff', borderRadius: 14, padding: '12px 14px', marginBottom: 14 }}>
+          <span style={{ fontSize: 22 }}>🚀</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>前往完整版 App</div>
+            <div style={{ fontSize: 12, opacity: .9 }}>Brain Lab · 多科目 · 社交陪練 · 可裝成手機 App</div>
+          </div>
+          <span style={{ fontSize: 18 }}>→</span>
+        </div>
+      </a>
+
       <p style={{ color: '#6b7280', fontSize: 14 }}>嗨，{user.email?.split('@')[0]} 👋 今天也來練一下吧！</p>
 
       {card ? (
