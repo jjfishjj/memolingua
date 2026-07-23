@@ -221,13 +221,21 @@ const KEYS=['img','snd','txt','act','soc','sys','cre','biz'];
 const INPUT={img:[.9,.2,.4,.3],snd:[.2,.9,.3,.4],txt:[.4,.2,.9,.2],act:[.3,.4,.2,.9],
   soc:[.3,.7,.3,.7],sys:[.4,.2,.7,.3],cre:[.7,.3,.5,.4],biz:[.5,.5,.6,.7]};
 // 對照表：memolingua 8 型 → fluent-ai genius 型 + VARK（導流進 App 用）
-const GENIUS={img:['visionary','visual'],snd:['melodist','auditory'],txt:['architect','reading'],
+// 8 型對照 — 內建 fallback；頁面載入時會用正本 type-map.json 覆蓋（防 drift）。
+let GENIUS={img:['visionary','visual'],snd:['melodist','auditory'],txt:['architect','reading'],
   act:['explorer','kinesthetic'],soc:['performer','auditory'],sys:['analyst','reading'],
   cre:['narrator','auditory'],biz:['connector','reading']};
-// genius key → App 內的顯示名（讓命名對照對使用者透明）
-const GENIUS_NAME={visionary:'圖像家 VISIONARY',melodist:'旋律人 MELODIST',architect:'建築師 ARCHITECT',
+let GENIUS_NAME={visionary:'圖像家 VISIONARY',melodist:'旋律人 MELODIST',architect:'建築師 ARCHITECT',
   explorer:'探索者 EXPLORER',performer:'表演者 PERFORMER',analyst:'分析師 ANALYST',
   narrator:'敘事者 NARRATOR',connector:'織網者 CONNECTOR'};
+// 從正本 JSON 載入對照，覆蓋內建值（讀不到就保留內建，不影響測驗）
+fetch('type-map.json').then(r=>r.ok?r.json():null).then(m=>{
+  if(!m||!m.talents)return;
+  const g={},n={};
+  for(const k in m.talents){ const t=m.talents[k];
+    g[k]=[t.genius,t.vark]; if(t.geniusName)n[t.genius]=t.geniusName; }
+  if(Object.keys(g).length===8){ GENIUS=g; GENIUS_NAME=n; }
+}).catch(()=>{});
 const APP_URL='https://fluent-ai-mu.vercel.app';
 
 /* ===== 多科目訓練：科目 × 記憶天份 組合 ===== */

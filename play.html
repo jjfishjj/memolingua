@@ -189,10 +189,16 @@ const RETRYABLE=[429,500,502,503,504];
 // memolingua 8 天賦 → fluent-ai chat function 認得的 genius 型 + VARK 風格。
 // chat function 內建依這兩個值調整教法（視覺型多用畫面、聽覺型強調發音…），
 // 只要傳過去，AI 的教法就會真的隨天賦改變——這是產品的核心賣點。
-const TALENT2AI={
+// 內建 fallback；載入時用正本 type-map.json 覆蓋（與 scale.html 同一份對照，防 drift）
+let TALENT2AI={
  img:['visionary','visual'], snd:['melodist','auditory'], txt:['architect','reading'],
  act:['explorer','kinesthetic'], soc:['performer','auditory'], sys:['analyst','reading'],
  cre:['narrator','auditory'], biz:['connector','reading']};
+fetch('type-map.json').then(r=>r.ok?r.json():null).then(m=>{
+  if(!m||!m.talents)return;
+  const g={}; for(const k in m.talents)g[k]=[m.talents[k].genius,m.talents[k].vark];
+  if(Object.keys(g).length===8)TALENT2AI=g;
+}).catch(()=>{});
 
 // Gemini 免費層偶爾短暫過載回 500/429，屬暫時性 → 自動重試，別讓使用者卡住。
 async function streamChat(messages,settings,onDelta,onDone,onError,onRetry){

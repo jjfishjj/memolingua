@@ -1,5 +1,11 @@
 # 型態對照表 · memolingua ↔ fluent-ai
 
+> ⚠️ **正本（single source of truth）= `type-map.json`**
+> （線上：https://jjfishjj.github.io/memolingua/type-map.json）
+> 要改型態對應，**只改那個 JSON**。`scale.html` 與 `play.html` 載入時會 fetch 它覆蓋內建值。
+> fluent-ai 端的 `src/lib/genius-type.ts` 是硬編碼，請手動與此 JSON 保持一致。
+> 下面的表格僅供閱讀，若與 JSON 不符，**以 JSON 為準**。
+
 兩個專案分工（memolingua = 獲客官網量表、fluent-ai = 產品 App），
 各自維持自己的 8 型態命名，透過這張**對照表**串接資料與導流。
 

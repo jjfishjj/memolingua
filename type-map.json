@@ -1,0 +1,15 @@
+{
+  "_comment": "★ 8 型態對照正本（single source of truth）。要改型態對應，只改這個檔。scale.html / play.html 會 fetch 這裡；fluent-ai 的 genius-type.ts 請與此保持一致。",
+  "_url": "https://jjfishjj.github.io/memolingua/type-map.json",
+  "version": "2026-07-19",
+  "talents": {
+    "img": { "name": "影像造景師", "emoji": "💠", "genius": "visionary", "geniusName": "圖像家 VISIONARY", "vark": "visual" },
+    "snd": { "name": "旋律獵人",   "emoji": "🎧", "genius": "melodist",  "geniusName": "旋律人 MELODIST",  "vark": "auditory" },
+    "txt": { "name": "邏輯解密者", "emoji": "📑", "genius": "architect", "geniusName": "建築師 ARCHITECT", "vark": "reading" },
+    "act": { "name": "戲劇行動派", "emoji": "🎯", "genius": "explorer",  "geniusName": "探索者 EXPLORER",  "vark": "kinesthetic" },
+    "soc": { "name": "圈粉教學家", "emoji": "🗣️", "genius": "performer", "geniusName": "表演者 PERFORMER", "vark": "auditory" },
+    "sys": { "name": "節奏工程師", "emoji": "📈", "genius": "analyst",   "geniusName": "分析師 ANALYST",   "vark": "reading" },
+    "cre": { "name": "腦洞煉金師", "emoji": "✨", "genius": "narrator",  "geniusName": "敘事者 NARRATOR",  "vark": "auditory" },
+    "biz": { "name": "目標狙擊手", "emoji": "💼", "genius": "connector", "geniusName": "織網者 CONNECTOR", "vark": "reading" }
+  }
+}
