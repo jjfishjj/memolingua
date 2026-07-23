@@ -90,6 +90,7 @@
       <h1 id="hName" style="margin:2px 0;color:#fff">—</h1>
       <div id="hCombo" style="opacity:.9;font-size:13px"></div>
       <div class="tag" id="hGift"></div>
+      <div id="hGenius" style="opacity:.85;font-size:12px;margin-top:8px"></div>
     </div>
 
     <div class="card">
@@ -223,6 +224,10 @@ const INPUT={img:[.9,.2,.4,.3],snd:[.2,.9,.3,.4],txt:[.4,.2,.9,.2],act:[.3,.4,.2
 const GENIUS={img:['visionary','visual'],snd:['melodist','auditory'],txt:['architect','reading'],
   act:['explorer','kinesthetic'],soc:['performer','auditory'],sys:['analyst','reading'],
   cre:['narrator','auditory'],biz:['connector','reading']};
+// genius key → App 內的顯示名（讓命名對照對使用者透明）
+const GENIUS_NAME={visionary:'圖像家 VISIONARY',melodist:'旋律人 MELODIST',architect:'建築師 ARCHITECT',
+  explorer:'探索者 EXPLORER',performer:'表演者 PERFORMER',analyst:'分析師 ANALYST',
+  narrator:'敘事者 NARRATOR',connector:'織網者 CONNECTOR'};
 const APP_URL='https://fluent-ai-mu.vercel.app';
 
 /* ===== 多科目訓練：科目 × 記憶天份 組合 ===== */
@@ -363,6 +368,7 @@ function renderReport(sc,top1,top2){
   selectSubject(curSubj);
   // 導流進 App：帶對照後的 genius 型態 + VARK
   const g=GENIUS[top1]||['explorer','kinesthetic'];
+  $('hGenius').textContent='🔗 在 App 裡你是「'+(GENIUS_NAME[g[0]]||g[0])+'」· VARK：'+g[1];
   $('appLink').href=APP_URL+'/practice?genius='+g[0]+'&vark='+g[1]+'&from=scale';
   $('bookLink').href='training.html#'+top1;
   $('playLink').href='play.html?talent='+top1;   // 帶天賦進訓練場 → 置頂顯示專屬推薦
