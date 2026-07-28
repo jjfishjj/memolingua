@@ -1153,6 +1153,30 @@ function currentTalent(){
 /* ================= 練習紀錄（localStorage） ================= */
 function loadLog(){ try{ return JSON.parse(localStorage.getItem(LS_LOG)||'{}'); }catch(e){ return {}; } }
 function saveLog(l){ try{ localStorage.setItem(LS_LOG,JSON.stringify(l)); }catch(e){} }
+
+// ===== 連續天數 streak + 活躍紀錄 =====
+const LS_STATS='ml_stats';
+function loadStats(){ try{ return JSON.parse(localStorage.getItem(LS_STATS)||'{}'); }catch(e){ return {}; } }
+function saveStats(s){ try{ localStorage.setItem(LS_STATS,JSON.stringify(s)); }catch(e){} }
+const dayStr=t=>new Date(t).toISOString().slice(0,10);
+function touchStreak(){
+  const s=loadStats(), today=dayStr(Date.now());
+  s.total=(s.total||0)+1;
+  s.days=s.days||[];
+  if(s.lastDay!==today){                       // 今天第一次練
+    const y=dayStr(Date.now()-864e5);
+    s.streak=(s.lastDay===y)?(s.streak||0)+1:1; // 昨天有練→接續，否則重新算
+    s.lastDay=today;
+    if(!s.days.includes(today))s.days.push(today);
+    s.days=s.days.slice(-90);
+  }
+  saveStats(s);
+}
+// 從 review.html 的複習本讀「今日待複習」數（跨頁共用 localStorage）
+function reviewDue(){
+  try{ const d=JSON.parse(localStorage.getItem('ml_review_deck')||'{}');
+    return Object.values(d).filter(c=>c.due<=Date.now()).length; }catch(e){ return 0; }
+}
 // 匿名回報訓練行為給後台（fire-and-forget：失敗絕不影響使用者練習）
 // 只送卡片 id / 形式 / 天賦 / 分數——沒有 email、姓名或任何個資。
 function logEvent(id,event,score){
@@ -1170,7 +1194,7 @@ function recordPlay(id,score){
   const l=loadLog(); const r=l[id]||{n:0};
   r.n++; r.last=Date.now();
   if(score&&(!r.best||score.v>r.best.v)) r.best={v:score.v,t:score.t};
-  l[id]=r; saveLog(l); refreshProgress();
+  l[id]=r; saveLog(l); touchStreak(); refreshProgress();
   logEvent(id,score?'complete':'open',score);
 }
 window.recordPlay=recordPlay;
@@ -1211,16 +1235,37 @@ function updateReviewBadge(){
 window.addToReview=addToReview;
 
 function refreshProgress(){
-  const l=loadLog(); const done=EX.filter(e=>l[e.id]).length;
   const el=$('progress'); if(!el)return;
+  const l=loadLog(), s=loadStats();
+  const done=EX.filter(e=>l[e.id]).length;
   const pct=Math.round(done/EX.length*100);
-  el.innerHTML=`<div class="row" style="justify-content:space-between">
-      <span><b>已練 ${done} / ${EX.length}</b> 張</span>
-      <span class="muted">${pct}%</span></div>
-    <div class="timerbar" style="margin:6px 0 0"><div style="width:${pct}%"></div></div>
-    ${done?`<div class="muted" style="margin-top:6px">${
-      EX.filter(e=>l[e.id]&&l[e.id].best).map(e=>`${e.ic} ${e.n} 最佳 ${l[e.id].best.t}`).join('　·　')||'繼續練，成績會記在這裡'
-    }</div>`:'<div class="muted" style="margin-top:6px">練過的卡會記錄在這裡，成績會留下最佳紀錄</div>'}`;
+  const streak=s.streak||0, total=s.total||0, due=reviewDue();
+  const days=s.days||[];
+  // 本週活躍點：週一到週日
+  const now=new Date(); const dow=(now.getDay()+6)%7;            // 週一=0
+  const monday=new Date(now); monday.setDate(now.getDate()-dow);
+  const dots=['一','二','三','四','五','六','日'].map((n,i)=>{
+    const d=new Date(monday); d.setDate(monday.getDate()+i);
+    const on=days.includes(dayStr(d.getTime())), today=i===dow;
+    return `<div style="text-align:center"><div style="width:16px;height:16px;border-radius:50%;margin:0 auto;
+      background:${on?'var(--accent)':'#eef0f3'};border:${today?'2px solid var(--primary)':'none'}"></div>
+      <div style="font-size:10px;color:var(--sub);margin-top:2px">${n}</div></div>`;
+  }).join('');
+  const tile=(big,lab,color)=>`<div style="flex:1;text-align:center;background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:9px 4px"><div style="font-size:20px;font-weight:800;color:${color||'var(--primary)'}">${big}</div>
+    <div style="font-size:10px;color:var(--sub);margin-top:1px">${lab}</div></div>`;
+  el.innerHTML=`
+    <div style="display:flex;gap:7px">
+      ${tile((streak>0?'🔥':'')+streak,'連續天數',streak>0?'#f59e0b':'var(--sub)')}
+      ${tile(done+'/'+EX.length,'已練卡數')}
+      ${tile(total,'總練習')}
+      <a href="review.html" style="text-decoration:none;flex:1">${tile(due,'待複習',due>0?'#ef4444':'var(--sub)').replace('flex:1;','')}</a>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:10px;padding:0 4px">${dots}</div>
+    <div class="timerbar" style="margin:10px 0 0"><div style="width:${pct}%"></div></div>
+    ${done?`<div class="muted" style="margin-top:6px;font-size:12px">🏅 ${
+      EX.filter(e=>l[e.id]&&l[e.id].best).slice(0,3).map(e=>`${e.ic}${e.best.t}`).join('　')||'繼續練，成績會記在這裡'
+    }</div>`:'<div class="muted" style="margin-top:6px;font-size:12px">每天練一張就能點亮連續天數 🔥</div>'}`;
 }
 
 /* ================= 選單 / 路由 ================= */
