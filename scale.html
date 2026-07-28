@@ -378,6 +378,10 @@ function renderReport(sc,top1,top2){
   const g=GENIUS[top1]||['explorer','kinesthetic'];
   $('hGenius').textContent='🔗 在 App 裡你是「'+(GENIUS_NAME[g[0]]||g[0])+'」· VARK：'+g[1];
   $('appLink').href=APP_URL+'/practice?genius='+g[0]+'&vark='+g[1]+'&from=scale';
+  // 記錄「到 App」導流點擊（給後台漏斗用；fire-and-forget，不擋跳轉）
+  $('appLink').onclick=()=>{ try{ fetch(SUPA_URL+'/rest/v1/play_events',{method:'POST',
+    headers:{apikey:SUPA_ANON,Authorization:'Bearer '+SUPA_ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
+    body:JSON.stringify({exercise_id:'__toapp__',mode:'funnel',talent:top1,event:'open',source:'github-pages'})}).catch(()=>{}); }catch(e){} };
   $('bookLink').href='training.html#'+top1;
   $('playLink').href='play.html?talent='+top1;   // 帶天賦進訓練場 → 置頂顯示專屬推薦
 }

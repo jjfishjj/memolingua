@@ -58,14 +58,32 @@
   </div>
 
   <div class="tabs">
-    <button class="tab on" data-p="scale">🏅 記憶天賦量表</button>
+    <button class="tab on" data-p="overview">📈 總覽</button>
+    <button class="tab" data-p="scale">🏅 記憶天賦量表</button>
     <button class="tab" data-p="play">🎮 訓練行為</button>
     <button class="tab" data-p="content">✏️ 內容管理</button>
     <button class="tab" data-p="vark">📊 簡易 VARK</button>
   </div>
 
+  <div class="pane on" id="p-overview">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h2 style="margin:0">每日活動趨勢</h2>
+        <select id="ovDays" style="padding:5px 9px;border:1px solid var(--line);border-radius:9px;font-size:12px">
+          <option value="14">近 14 天</option><option value="30" selected>近 30 天</option><option value="60">近 60 天</option>
+        </select>
+      </div>
+      <canvas id="tsChart" height="200" style="margin-top:12px"></canvas>
+    </div>
+    <div class="card">
+      <h2>轉換漏斗</h2>
+      <p class="muted" style="font-size:12px;margin:-6px 0 12px">量表完成 → 留 email → 點「到 App」導流。看使用者在哪一段流失。</p>
+      <div id="funnel"></div>
+    </div>
+  </div>
+
   <!-- ===== 分頁 1：記憶天賦量表 ===== -->
-  <div class="pane on" id="p-scale">
+  <div class="pane" id="p-scale">
     <div class="kpi">
       <div class="b"><div class="n" id="sTotal">—</div><div class="l">總填寫人數</div></div>
       <div class="b"><div class="n" id="s7d">—</div><div class="l">近 7 天</div></div>
@@ -211,7 +229,9 @@ async function adminLogin(btn){
   }catch(e){ gmsg('⚠ '+e.message); btn.disabled=false; btn.textContent=t; }
 }
 function logout(){ TOKEN=null; sessionStorage.removeItem('ml_admin_token'); location.reload(); }
-function openDash(){ $('gate').style.display='none'; buildSelects(); loadAll(); }
+function openDash(){ $('gate').style.display='none'; buildSelects();
+  const ov=$('ovDays'); if(ov)ov.onchange=loadOverview;
+  loadAll(); }
 
 /* ===== 工具 ===== */
 const lbl=k=>(ARCH[k]||[k])[0], col=k=>(ARCH[k]||['','#888'])[1];
@@ -235,7 +255,32 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
 });
 
 /* ===== 載入全部 ===== */
-async function loadAll(){ $('err').textContent=''; loadScale(); loadPlay(); loadVark(); loadExercises(); }
+async function loadAll(){ $('err').textContent=''; loadOverview(); loadScale(); loadPlay(); loadVark(); loadExercises(); }
+
+/* --- 總覽：時間序列 + 漏斗 --- */
+async function loadOverview(){
+  try{
+    const days=+($('ovDays').value||30);
+    const series=await rpc('admin_activity_series',{p_days:days});
+    if(series.__missing){ $('funnel').innerHTML='<p class="muted" style="font-size:13px">⚠ 找不到 admin_activity_series()——請先跑 <b>RUN_ME_5.sql</b>。</p>'; return; }
+    chart('tsChart',{type:'line',
+      data:{labels:series.map(r=>r.d),datasets:[
+        {label:'量表填答',data:series.map(r=>r.quiz),borderColor:'#14b8a6',backgroundColor:'#14b8a622',tension:.3,fill:true,pointRadius:0},
+        {label:'訓練事件',data:series.map(r=>r.train),borderColor:'#8b5cf6',backgroundColor:'#8b5cf622',tension:.3,fill:true,pointRadius:0}]},
+      options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},
+        scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:9},maxTicksLimit:12}}}}});
+    const f=await rpc('admin_funnel');
+    const q=f.quiz_done||0, e=f.email_leads||0, c=f.toapp_clicks||0, max=Math.max(1,q);
+    const step=(lab,v,color,rate)=>`<div class="barrow"><div class="barlab">
+      <span>${lab}</span><span style="color:${color};font-weight:700">${v}${rate!=null?`　<span class="muted" style="font-weight:400">${rate}%</span>`:''}</span></div>
+      <div class="bartrack"><div style="width:${Math.round(v/max*100)}%;background:${color}"></div></div></div>`;
+    $('funnel').innerHTML=
+      step('① 量表完成',q,'#14b8a6',null)+
+      step('② 留下 email',e,'#6366f1',q?Math.round(e/q*100):0)+
+      step('③ 點「到 App」導流',c,'#0ea5e9',q?Math.round(c/q*100):0)+
+      `<p class="muted" style="font-size:12px;margin-top:8px">留 email 轉換 ${q?Math.round(e/q*100):0}%　·　導流點擊 ${q?Math.round(c/q*100):0}%</p>`;
+  }catch(e){ $('err').textContent='⚠ 總覽載入失敗：'+e.message; }
+}
 
 /* --- 分頁 1：量表 --- */
 async function loadScale(){
