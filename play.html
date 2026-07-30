@@ -134,6 +134,7 @@
     </div>
     <div id="talentBanner"></div>
     <div class="prog" id="progress"></div>
+    <div id="skillRadar"></div>
     <div id="reviewBadge"></div>
     <div class="modeRow" id="modeRow"></div>
     <div class="grid" id="grid"></div>
@@ -578,6 +579,7 @@ const EX=[
   draw();
   $('chk').onclick=()=>{
     const ok=chain.every((c,i)=>c===set.items[i]);
+    recordAttempt('chain',ok);
     $('res').innerHTML=ok
       ? '<div class="result ok">✅ 完全正確！因果順序對了，這組知識就不用死背了。</div>'
       : `<div class="result no">❌ 順序不對。正確因果鏈：<br>${set.items.map((c,i)=>`${i+1}. ${esc(c)}`).join('<br>')}<br><span class="muted">看懂為什麼是這個順序，比背下來更重要。</span></div>`;
@@ -613,6 +615,7 @@ const EX=[
     }else{
       $('chk').onclick=()=>{
         const a=$('ans').value.trim();
+        recordAttempt('numcode',a===num);
         if(a===num)recordPlay('numcode',{v:1,t:'答對 6 位數'});
         $('res').innerHTML=(a===num)
           ? `<div class="result ok">✅ 完全正確！<b>${num}</b> —— 故事法有效，你根本沒死背數字。</div><div class="row" style="margin-top:8px"><button class="btn ghost" onclick="window.__ncNext()">🔄 再來一組</button></div>`
@@ -736,7 +739,8 @@ const EX=[
     $('play').onclick=()=>speak(st.target,.9);
     speak(st.target,.9);
     el.querySelectorAll('.pairbtn').forEach(b=>b.onclick=()=>{
-      if(b.dataset.w===st.target)st.score++;
+      const ok=b.dataset.w===st.target; recordAttempt('minimal',ok);
+      if(ok)st.score++;
       el.querySelectorAll('.pairbtn').forEach(x=>x.classList.add(x.dataset.w===st.target?'correct':'wrong'));
       setTimeout(()=>{
         el.insertAdjacentHTML('beforeend',
@@ -951,6 +955,7 @@ const EX=[
     if(flipped.length===2){
       moves++; lock=true; draw();
       const [a,b]=flipped;
+      recordAttempt('flip',deck[a].k===deck[b].k&&deck[a].side!==deck[b].side);
       if(deck[a].k===deck[b].k&&deck[a].side!==deck[b].side){
         matched.add(deck[a].k); beep(900); flipped=[]; lock=false;
         const p=pool[deck[a].k]; addToReview(p.en,p.zh);   // 配對到的字進複習本
@@ -1002,6 +1007,7 @@ const EX=[
   const ans=(v,b)=>{
     if(st.answered)return; st.answered=true; clearInterval(st.timer);
     const ok=v===st.cur;
+    recordAttempt('speed',ok);
     if(ok){ st.score++; st.combo++; st.best=Math.max(st.best,st.combo); beep(1000); }
     else { st.combo=0; beep(220); addToReview(st.q.w,st.q.a,true); }  // 答錯的字優先進複習本
     el.querySelectorAll('.gopt').forEach(x=>{ x.style.opacity='.45';
@@ -1104,6 +1110,7 @@ const EX=[
   };
   const check=()=>{
     const ok=built.join(' ')===q.s;
+    recordAttempt('jigsaw',ok);
     if(ok)recordPlay('jigsaw',{v:1,t:'拼對句子'});
     draw(ok
       ? `<div class="result ok" style="margin-top:10px">✅ 完全正確！<br><b>${esc(q.s)}</b><br>
@@ -1177,6 +1184,40 @@ function reviewDue(){
   try{ const d=JSON.parse(localStorage.getItem('ml_review_deck')||'{}');
     return Object.values(d).filter(c=>c.due<=Date.now()).length; }catch(e){ return 0; }
 }
+
+// ===== CDM-lite：知識精熟度診斷 =====
+// Q 矩陣：每張卡練哪些語言能力屬性（V詞彙 / G文法語序 / L聽辨 / S語義辨析）
+const ATTRS={V:'詞彙記憶',G:'文法語序',L:'聽辨',S:'語義辨析'};
+const QMATRIX={
+  speed:['V'], flip:['V'], root:['V'], numcode:['V'],
+  jigsaw:['G'], highlight:['G'],
+  minimal:['L'], rap:['L'],
+  twin:['S'], bug:['S'], chain:['S'],
+  hook:['V'], story:['V'], meme:['L'], feynman:['S']
+};
+const LS_SKILL='ml_skill';
+function loadSkill(){ try{ return JSON.parse(localStorage.getItem(LS_SKILL)||'{}'); }catch(e){ return {}; } }
+function saveSkill(s){ try{ localStorage.setItem(LS_SKILL,JSON.stringify(s)); }catch(e){} }
+// 記一題對錯到對應屬性（本機累計 + 匿名送後台供 Stage 2 全班平均）
+function recordAttempt(exId,correct){
+  const attrs=QMATRIX[exId]; if(!attrs)return;
+  const s=loadSkill();
+  attrs.forEach(a=>{ s[a]=s[a]||{c:0,n:0}; s[a].n++; if(correct)s[a].c++; });
+  saveSkill(s);
+  attrs.forEach(a=>{
+    try{ fetch(SUPA_URL_REST+'/skill_attempts',{method:'POST',
+      headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({attr:a,correct:!!correct,talent:currentTalent(),source:'github-pages'})}).catch(()=>{});
+    }catch(e){}
+  });
+}
+// 精熟度（原文公式）：0.7×潛在狀態(門檻化) + 0.3×實際答對率
+function mastery(a){
+  const s=loadSkill()[a]; if(!s||!s.n)return null;
+  const rate=s.c/s.n, latent=rate>=0.7?1:0;
+  return { pct:Math.round((0.7*latent+0.3*rate)*100), rate:Math.round(rate*100), n:s.n };
+}
+window.recordAttempt=recordAttempt;
 // 匿名回報訓練行為給後台（fire-and-forget：失敗絕不影響使用者練習）
 // 只送卡片 id / 形式 / 天賦 / 分數——沒有 email、姓名或任何個資。
 function logEvent(id,event,score){
@@ -1266,6 +1307,49 @@ function refreshProgress(){
     ${done?`<div class="muted" style="margin-top:6px;font-size:12px">🏅 ${
       EX.filter(e=>l[e.id]&&l[e.id].best).slice(0,3).map(e=>`${e.ic}${e.best.t}`).join('　')||'繼續練，成績會記在這裡'
     }</div>`:'<div class="muted" style="margin-top:6px;font-size:12px">每天練一張就能點亮連續天數 🔥</div>'}`;
+  renderSkillRadar();
+}
+
+// 純 SVG 四軸知識精熟度雷達（零依賴）—— CDM-lite 診斷結果
+function renderSkillRadar(){
+  const el=$('skillRadar'); if(!el)return;
+  const order=['V','G','L','S'];
+  const vals=order.map(a=>({a,m:mastery(a)}));
+  const answered=vals.filter(v=>v.m).length;
+  if(!answered){
+    el.innerHTML=`<div class="prog" style="margin-top:10px;text-align:center;color:var(--sub);font-size:12px">
+      🎯 知識精熟度診斷 — 玩詞彙/文法/聽力遊戲後，這裡會畫出你的能力雷達</div>`;
+    return;
+  }
+  const cx=90,cy=90,R=64;
+  const ang=i=>(-90+i*90)*Math.PI/180;                     // V上 G右 L下 S左
+  const pt=(i,r)=>[cx+Math.cos(ang(i))*R*r, cy+Math.sin(ang(i))*R*r];
+  const gridPts=r=>order.map((_,i)=>pt(i,r).join(',')).join(' ');
+  const dataPts=vals.map((v,i)=>pt(i,(v.m?v.m.pct:0)/100).join(',')).join(' ');
+  const labels=vals.map((v,i)=>{ const [x,y]=pt(i,1.28);
+    const pct=v.m?v.m.pct:'—';
+    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="var(--sub)">${ATTRS[v.a]}</text>
+            <text x="${x}" y="${y+13}" text-anchor="middle" font-size="11" font-weight="800" fill="var(--primary)">${pct}${pct==='—'?'':'%'}</text>`;
+  }).join('');
+  const weak=vals.filter(v=>v.m).sort((a,b)=>a.m.pct-b.m.pct)[0];
+  el.innerHTML=`<div class="prog" style="margin-top:10px">
+    <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:2px">🎯 你的知識精熟度</div>
+    <div style="text-align:center">
+      <svg viewBox="0 0 180 180" width="230" height="200" style="max-width:100%">
+        ${[1,0.66,0.33].map(r=>`<polygon points="${gridPts(r)}" fill="none" stroke="#eef0f3" stroke-width="1"/>`).join('')}
+        ${order.map((_,i)=>{const [x,y]=pt(i,1);return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#eef0f3" stroke-width="1"/>`;}).join('')}
+        <polygon points="${dataPts}" fill="#14b8a633" stroke="#14b8a6" stroke-width="2"/>
+        ${labels}
+      </svg>
+    </div>
+    <div class="muted" style="font-size:12px;text-align:center;margin-top:-6px">
+      ${weak?`最弱：<b style="color:#ef4444">${ATTRS[weak.a]} ${weak.m.pct}%</b> — 多練${QCARDHINT(weak.a)}`:''}
+    </div></div>`;
+}
+// 建議該屬性去玩哪張卡
+function QCARDHINT(a){
+  const rec={V:'限時快答/翻牌',G:'句子拼圖',L:'聲音跟讀',S:'相似概念'};
+  return rec[a]||'相關訓練';
 }
 
 /* ================= 選單 / 路由 ================= */
