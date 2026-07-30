@@ -184,7 +184,7 @@ const ARCH={img:['💠 影像造景師','#6366F1'],snd:['🎧 旋律獵人','#EC
 const ORDER=['img','snd','txt','act','soc','sys','cre','biz'];
 const MODES={ai:['🤖 AI 對話','#0ea5e9'],card:['🎴 卡牌訓練','#8b5cf6'],game:['🎮 小遊戲','#f59e0b'],
   sound:['🎵 相似聲音','#ec4899'],similar:['🔍 相似事物','#10b981'],tool:['🛠️ 結構工具','#64748b']};
-// 對應 play.html 的 22 張卡（用來顯示名稱、找出沒人練的卡）
+// 對應 play.html 的 26 張卡（用來顯示名稱、找出沒人練的卡）
 const CARDS={hook:'📍 情境鉤子卡',story:'📖 情感故事卡',feynman:'🧑‍🏫 費曼原理卡',impromptu:'⚡ 即時輸出卡',
   podcast:'🎙️ Podcast 說書人',meme:'😂 諧音迷因',rp:'🎭 情境式劇本殺',bug:'🐛 AI 挑錯',fixloop:'🔁 錯誤修正回路',
   root:'🧩 字根字首拆解樹',web:'🕸️ 概念織網卡',imgremix:'🎨 AI 圖像變形記',chain:'🗺️ 知識地圖連連看',numcode:'🔢 數字轉碼訓練',
@@ -338,7 +338,7 @@ async function loadPlay(){
     $('coldCards').innerHTML=cold.length
       ? cold.map(k=>`<span style="display:inline-block;font-size:12px;padding:3px 10px;border-radius:99px;background:#f3f4f6;color:var(--sub);margin:3px 4px 0 0">${cname(k)}</span>`).join('')
         +`<p class="muted" style="font-size:12px;margin-top:8px">這 ${cold.length} 張沒人碰過——可能是入口太深、名字沒吸引力，或推薦沒排到。</p>`
-      : '<p class="muted" style="font-size:13px">🎉 22 張全部都有人練過</p>';
+      : '<p class="muted" style="font-size:13px">🎉 26 張全部都有人練過</p>';
     const rec=s.recent||[];
     $('pRecent').innerHTML=rec.length?rec.map(r=>
       `<tr><td>${cname(r.id)}</td><td class="muted">${r.event==='complete'?'✅ 完成':'▶ 開啟'}</td>
