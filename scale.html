@@ -7,10 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
 <style>
-  :root{--primary:#0e3a36;--accent:#14b8a6;--ink:#0e3a36;--sub:#6b7280;--line:#e7eeec;--bg:#f3f8f7;}
+  :root{--primary:#182344;--accent:#55d6be;--ink:#182344;--sub:#6b7280;--line:#e8eaf2;--bg:#f4f5fb;--gold:#ffcf68;}
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
-  .wrap{max-width:480px;margin:0 auto;min-height:100vh;background:#fff}
+  body{margin:0;font-family:-apple-system,"PingFang TC",sans-serif;background:radial-gradient(ellipse at 20% 0%,#dff9f2 0,transparent 38%),radial-gradient(ellipse at 90% 22%,#f2eaff 0,transparent 30%),var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:520px;margin:0 auto;min-height:100vh;background:rgba(255,255,255,.94);box-shadow:0 0 50px #1823440a}
   .screen{display:none;padding:24px 20px 48px;animation:fade .35s}
   .screen.on{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -21,7 +21,47 @@
   .btn.accent{background:var(--accent)}
   .btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line)}
   .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn{transition:transform .18s,box-shadow .18s}
+  .btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 9px 22px #18234420}
   .hero{border-radius:20px;padding:22px;color:#fff;margin-bottom:14px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;font-weight:800;color:#64748b}
+  .mission-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .mission{padding:12px 10px;border:1.5px solid var(--line);border-radius:15px;background:#fff;text-align:left;cursor:pointer;color:var(--ink);font:inherit;transition:.18s}
+  .mission:hover{transform:translateY(-2px);border-color:#a8eadc}
+  .mission.on{border-color:var(--accent);background:#e9fbf6;box-shadow:0 0 0 3px #55d6be22}
+  .mission b{display:block;font-size:13px;margin-top:3px}.mission span{font-size:20px}
+  .quest-hud{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:16px;padding:11px 13px;background:linear-gradient(110deg,#f1fbf8,#f7f4ff);margin:13px 0 16px}
+  .xp-pill{font-weight:800;color:#7755c8;background:#fff;border-radius:99px;padding:6px 10px;font-size:12px;box-shadow:0 2px 8px #1823440c}
+  .companion{display:flex;gap:10px;align-items:center;background:#fff9e9;border:1px solid #ffedc2;border-radius:14px;padding:10px 12px;margin:12px 0;color:#74521d;font-size:12px}
+  .companion .buddy{font-size:24px;animation:bob 2.2s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-3px)}}
+  .class-card{position:relative;overflow:hidden;border-radius:24px;padding:22px;color:#fff;margin-bottom:14px;min-height:210px;box-shadow:0 16px 35px #18234425}
+  .class-card:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-48px;top:-65px;background:#ffffff18}
+  .class-card .class-emoji{font-size:58px;line-height:1;filter:drop-shadow(0 7px 8px #0002)}
+  .class-card .class-title{font-size:11px;letter-spacing:.13em;font-weight:800;opacity:.8;margin-top:13px}
+  .class-card h1{font-size:26px;margin:1px 0 5px;color:#fff}
+  .class-card .class-lore{font-size:13px;opacity:.9;max-width:320px}
+  .class-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+  .class-meta span{font-size:11px;font-weight:700;padding:5px 9px;border-radius:99px;background:#ffffff24;border:1px solid #ffffff35}
+  .class-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:17px}
+  .class-stat{background:#ffffff18;border-radius:12px;padding:8px;text-align:center}
+  .class-stat b{display:block;font-size:16px}.class-stat small{font-size:10px;opacity:.8}
+  .class-form{display:inline-flex;align-items:center;border-radius:99px;background:#ffffff20;border:1px solid #ffffff38;padding:4px 9px;margin:8px 0 1px;font-size:11px;font-weight:700;letter-spacing:.02em}
+  .talent-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+  .talent-tags span{font-size:11px;color:#39514d;background:#eaf8f4;border:1px solid #d7f0e9;border-radius:99px;padding:5px 9px}
+  .skill-tree{display:grid;gap:8px;margin-top:12px}
+  .skill-node{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:start;background:#f8f9fc;border:1px solid var(--line);border-radius:14px;padding:11px}
+  .skill-kind{font-size:10px;letter-spacing:.08em;font-weight:800;color:#64748b;padding-top:2px}
+  .skill-node b{display:block;font-size:13px;color:var(--ink)}
+  .skill-node p{margin:3px 0 0;color:#586174;font-size:12px;line-height:1.55}
+  .skill-node.active{background:#f0fbf8;border-color:#d5f1e9}
+  .skill-node.ultimate{background:#fff8e9;border-color:#f6e7c5}
+  .secondary-detail{font-size:11px;color:#627086;margin-top:4px}
+  .unlock{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:17px;padding:13px;margin:0 0 14px}
+  .unlock .mini{font-size:30px}.unlock b{font-size:13px}.unlock p{margin:2px 0 0;color:var(--sub);font-size:11px}
+  .confetti{animation:pop .38s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(.85);opacity:.5}to{transform:scale(1);opacity:1}}
+  @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   .hero .em{font-size:46px;line-height:1}
   .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
   .opt{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;padding:14px;border:2px solid var(--line);background:#fff;border-radius:14px;margin-bottom:10px;cursor:pointer;font-size:14px;transition:.15s}
@@ -52,31 +92,39 @@
   <!-- intro -->
   <div class="screen on" id="s0">
     <div style="text-align:center;padding-top:30px">
-      <div style="font-size:54px">🧠</div>
-      <h1>記憶天份量表</h1>
-      <p class="muted">12 題，找出你的<b>記憶天份類型</b>，拿到專屬的<br>語言學習路線、複習節奏與 30 天養成計畫。</p>
+      <div class="eyebrow">MEMOLINGUA · MEMORY QUEST</div>
+      <div style="font-size:62px;margin:10px 0 2px">🧭</div>
+      <h1 style="font-size:27px">你的記憶冒險，現在開始</h1>
+      <p class="muted">回答 12 道情境題，收集記憶碎片，解鎖<br><b>專屬職業角色、技能屬性與升級路線。</b></p>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#fff,#f8f7ff)">
+      <h2>🎒 選擇今天的冒險任務</h2>
+      <p class="muted" style="margin:0">你的選擇會帶進專屬訓練計畫，也可以之後再更改。</p>
+      <div class="mission-grid" id="missionGrid"></div>
     </div>
     <div class="card">
-      <h2>你會得到</h2>
+      <h2>🏆 通關後解鎖</h2>
       <p class="muted" style="line-height:1.9">
-        🏅 你的記憶天份名稱（可能是組合型）<br>
-        📊 你的學習指標分數（視覺／聽覺／文字／動作）<br>
-        🗺️ 你的學習路線（英文會話／多益／英檢／數學／物理）<br>
+        🧙 主職＋副職角色卡與專屬稱號<br>
+        ✨ 即時經驗值、天賦屬性與隱藏技能<br>
+        🗺️ 專屬學習路線、複習節奏與 30 天任務<br>
         🔁 你的複習節奏 + 錯誤修正方法<br>
         🎯 你的最佳應用場景<br>
         📅 你的 30 天記憶養成計畫
       </p>
     </div>
-    <button class="btn" onclick="start()">開始測驗 →</button>
-    <p class="muted" style="text-align:center;margin-top:14px">完全匿名 · 約 2 分鐘</p>
+    <button class="btn" onclick="start()">⚔️ 開始記憶冒險</button>
+    <p class="muted" style="text-align:center;margin-top:14px">12 道快問快答 · 約 2 分鐘 · 完全匿名</p>
   </div>
 
   <!-- quiz -->
   <div class="screen" id="s1">
     <div class="muted" style="display:flex;justify-content:space-between"><span id="qNo"></span><span id="qPct"></span></div>
+    <div class="quest-hud"><div><div class="eyebrow">正在進行的任務</div><b id="questName" style="font-size:13px">記憶探索者</b></div><span class="xp-pill" id="xpCount">✨ 0 XP</span></div>
     <div class="prog"><div id="progBar" style="width:0"></div></div>
     <div class="muted" id="qCtx" style="font-style:italic;margin-bottom:4px"></div>
     <h2 id="qText" style="font-size:18px"></h2>
+    <div class="companion"><span class="buddy">🦊</span><span id="buddyLine">小狐夥伴：跟著直覺選，冒險家！</span></div>
     <div id="qOpts" style="margin-top:14px"></div>
     <button class="btn ghost" id="backBtn" style="margin-top:4px" onclick="back()">← 上一題</button>
   </div>
@@ -84,6 +132,23 @@
   <!-- report -->
   <div class="screen" id="s2">
    <div id="reportDoc">
+    <div class="class-card" id="classCard" aria-live="polite">
+      <div class="class-emoji" id="classEmoji">🧙</div>
+      <div class="class-title">MEMORY QUEST · 你的專屬職業</div>
+      <h1 id="className">記憶冒險家</h1>
+      <div class="class-form" id="classForm">天賦形態</div>
+      <div class="class-lore" id="classLore"></div>
+      <div class="class-meta"><span id="classLevel">LV.1 新手冒險者</span><span id="classBadge">✨ 天賦已覺醒</span></div>
+      <div class="class-stats" id="classStats"></div>
+    </div>
+    <div class="card">
+      <h2>🌟 你的天賦刻印</h2>
+      <div class="muted" id="talentSummary"></div>
+      <div class="talent-tags" id="talentTags"></div>
+      <h2 style="margin-top:14px">📖 專屬技能樹</h2>
+      <div class="skill-tree" id="skillTree"></div>
+    </div>
+    <div class="unlock"><span class="mini" id="secondaryEmoji">🛡️</span><div><b id="secondaryTitle">副職解鎖</b><p id="secondaryText"></p><div class="secondary-detail" id="secondaryDetail"></div></div></div>
     <div class="hero" id="hero">
       <div class="em" id="hEmo">🧠</div>
       <div style="opacity:.8;font-size:12px;margin-top:6px">你的記憶天份</div>
@@ -295,42 +360,63 @@ function buildSubjChips(){
 
 /* ===== 題目（每選項對應一種天份） ===== */
 const Q=[
- {q:'記一個新單字，你最自然的方式是？',o:[['🖼️','把它畫成圖、配顏色或位置','img'],['🔊','大聲唸、聽發音反覆模仿','snd'],['📝','寫下定義、例句並分類整理','txt'],['🎬','馬上用它造句、在情境裡用','act']]},
- {q:'你最想用哪種方式「輸出」學到的東西？',o:[['🗣️','講給別人聽、教別人','soc'],['📊','默默累積、追蹤進度數據','sys'],['✨','編成故事或聯想','cre'],['💼','用在工作、考試或實際目標','biz']]},
- {q:'複習時你偏好的節奏是？',o:[['⏱️','每天短短幾分鐘高頻練','sys'],['📚','偶爾一次深入弄懂','txt'],['🎯','有任務或場景才練','act'],['🏁','為了考試或 deadline 衝刺','biz']]},
- {q:'聽不懂一段英文時，你會？',o:[['👀','看字幕、畫面找線索','img'],['🎧','反覆聽、模仿語調','snd'],['🔍','查逐字稿逐句拆解','txt'],['💬','直接回應、邊做邊猜','act']]},
- {q:'你覺得學語言最大的阻礙是？',o:[['🧠','容易忘、記不牢','sys'],['📐','容易卡文法','txt'],['😶','容易怕開口','soc'],['😅','容易拖延、沒有目標感','biz']]},
- {q:'哪種學習活動讓你最投入？',o:[['🗺️','畫心智圖、做圖卡','img'],['🎤','shadowing 跟讀音檔','snd'],['👥','小組討論、教別人','soc'],['🕹️','角色扮演、任務闖關','act']]},
- {q:'你記得最牢的經驗，通常是？',o:[['🌆','一個畫面或場景','img'],['🎵','一句話的聲音語調','snd'],['📖','一個故事或比喻','cre'],['🤝','一次真實做過的事','act']]},
- {q:'看到 streak 連續紀錄或進度圖，你？',o:[['🔥','很有動力想維持','sys'],['🎯','還好，比較看重用得上','biz'],['🗂️','喜歡把資料整理成表','txt'],['🏃','想趕快去對話練習','act']]},
- {q:'你最想要的學習成果是？',o:[['💬','能流利對話','act'],['💼','能通過考試／職場能用','biz'],['🧑‍🏫','能教別人、分享','soc'],['📈','能有系統地長期累積','sys']]},
- {q:'背一組句型，你會？',o:[['🖼️','想像使用的畫面','img'],['🔊','唸出來聽節奏','snd'],['📋','整理成表格或規則','txt'],['📚','編成一個小故事','cre']]},
- {q:'你最喜歡哪種單字記法？',o:[['🎴','圖像聯想卡','img'],['🔁','音檔循環','snd'],['🏰','記憶宮殿、故事','cre'],['👫','教別人或造對話','soc']]},
- {q:'你理想的學習陪伴是？',o:[['📅','給我數據和複習排程','sys'],['🎯','給我真實任務和場景','act'],['🗣️','給我口說陪跑夥伴','soc'],['💼','給我目標導向的計畫','biz']]},
+  {q:'記一個新單字，你最自然的方式是？',ctx:'第一關｜找到你的記憶武器',o:[['🖼️','把它畫成圖、配顏色或位置','img'],['🔊','大聲唸、聽發音反覆模仿','snd'],['📝','寫下定義、例句並分類整理','txt'],['🎬','馬上用它造句、在情境裡用','act']]},
+  {q:'你最想用哪種方式「輸出」學到的東西？',ctx:'第二關｜選擇你的技能流派',o:[['🗣️','講給別人聽、教別人','soc'],['📊','默默累積、追蹤進度數據','sys'],['✨','編成故事或聯想','cre'],['💼','用在工作、考試或實際目標','biz']]},
+  {q:'複習時你偏好的節奏是？',ctx:'第三關｜安排你的補給節奏',o:[['⏱️','每天短短幾分鐘高頻練','sys'],['📚','偶爾一次深入弄懂','txt'],['🎯','有任務或場景才練','act'],['🏁','為了考試或 deadline 衝刺','biz']]},
+  {q:'聽不懂一段英文時，你會？',ctx:'第四關｜面對迷霧，找出線索',o:[['👀','看字幕、畫面找線索','img'],['🎧','反覆聽、模仿語調','snd'],['🔍','查逐字稿逐句拆解','txt'],['💬','直接回應、邊做邊猜','act']]},
+  {q:'你覺得學語言最大的阻礙是？',ctx:'第五關｜確認你要突破的關卡',o:[['🧠','容易忘、記不牢','sys'],['📐','容易卡文法','txt'],['😶','容易怕開口','soc'],['😅','容易拖延、沒有目標感','biz']]},
+  {q:'哪種學習活動讓你最投入？',ctx:'第六關｜挑選最順手的技能',o:[['🗺️','畫心智圖、做圖卡','img'],['🎤','shadowing 跟讀音檔','snd'],['👥','小組討論、教別人','soc'],['🕹️','角色扮演、任務闖關','act']]},
+  {q:'你記得最牢的經驗，通常是？',ctx:'第七關｜回想你的記憶寶藏',o:[['🌆','一個畫面或場景','img'],['🎵','一句話的聲音語調','snd'],['📖','一個故事或比喻','cre'],['🤝','一次真實做過的事','act']]},
+  {q:'看到 streak 連續紀錄或進度圖，你？',ctx:'第八關｜發現你的持續力來源',o:[['🔥','很有動力想維持','sys'],['🎯','還好，比較看重用得上','biz'],['🗂️','喜歡把資料整理成表','txt'],['🏃','想趕快去對話練習','act']]},
+  {q:'你最想要的學習成果是？',ctx:'第九關｜鎖定最終目標',o:[['💬','能流利對話','act'],['💼','能通過考試／職場能用','biz'],['🧑‍🏫','能教別人、分享','soc'],['📈','能有系統地長期累積','sys']]},
+  {q:'背一組句型，你會？',ctx:'第十關｜打造你的記憶連結',o:[['🖼️','想像使用的畫面','img'],['🔊','唸出來聽節奏','snd'],['📋','整理成表格或規則','txt'],['📚','編成一個小故事','cre']]},
+  {q:'你最喜歡哪種單字記法？',ctx:'第十一關｜收集最後的記憶碎片',o:[['🎴','圖像聯想卡','img'],['🔁','音檔循環','snd'],['🏰','記憶宮殿、故事','cre'],['👫','教別人或造對話','soc']]},
+  {q:'你理想的學習陪伴是？',ctx:'最終關卡｜準備好召喚你的職業了嗎？',o:[['📅','給我數據和複習排程','sys'],['🎯','給我真實任務和場景','act'],['🗣️','給我口說陪跑夥伴','soc'],['💼','給我目標導向的計畫','biz']]},
 ];
 
-let cur=0, ans=[], radar;
+let cur=0, ans=[], radar, answerLock=false;
 const $=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);};
-
-function start(){cur=0;ans=[];show('s1');renderQ();}
+const CLASS={
+ img:{title:'星圖幻術師',role:'ILLUSIONIST',form:'映像拾光者 · 視覺構圖系',lore:'把畫面、色彩與空間化成記憶魔法；看見線索，你就能召喚知識。',skill:'星圖映記',weapon:'✨ 星象法典',color:'#6755d9',stats:[['感知','視覺'],['記憶','圖像'],['技能','心智圖']],traits:['看圖記得快','細節敏銳','擅長空間'],passive:['視線定錨','把關鍵畫面轉成記憶座標，回想時更容易找回細節。'],active:['色彩速描','用形狀與色彩快速標記重點，讓資訊一眼成形。'],ultimate:['全景回放','串起零散畫面，重現一段完整而清晰的記憶。']},
+ snd:{title:'共鳴吟遊詩人',role:'BARD',form:'節拍聆聽者 · 聲韻節奏系',lore:'用旋律、節奏與語調施展共鳴；一句話在耳邊迴盪，就不會走失。',skill:'聲波迴響',weapon:'🎼 共鳴豎琴',color:'#d94691',stats:[['感知','聽覺'],['記憶','節奏'],['技能','跟讀']],traits:['聽覺敏銳','節奏感佳','口訣高手'],passive:['韻律留聲','旋律與節奏替資訊打拍子，聽過的內容更容易留存。'],active:['節奏拆解','把長段內容切成短拍，跟著節奏迅速記牢。'],ultimate:['共鳴回響','喚回熟悉的聲音線索，讓重點接連浮現。']},
+ txt:{title:'符文策略師',role:'RUNE MAGE',form:'脈絡編目師 · 文字邏輯系',lore:'拆解規則、排列線索，把複雜知識寫成一眼看懂的符文地圖。',skill:'知識編碼',weapon:'📜 秘典卷軸',color:'#15966f',stats:[['感知','邏輯'],['記憶','結構'],['技能','整理']],traits:['善於整理','邏輯清晰','筆記達人'],passive:['條理歸檔','替資訊分類排序，讓知識各有位置、需要時隨取隨用。'],active:['重點摘錄','把繁雜內容濃縮成清楚筆記，快速掌握核心。'],ultimate:['知識索引','依關鍵詞與脈絡搜尋，精準找回所需答案。']},
+ act:{title:'沉浸探險家',role:'EXPLORER',form:'情境實踐家 · 行動體驗系',lore:'把每次練習變成實戰任務；親手走過的路，就是最牢固的地圖。',skill:'情境突破',weapon:'🗡️ 任務短刃',color:'#e28a19',stats:[['感知','行動'],['記憶','體驗'],['技能','實作']],traits:['喜歡實作','情境記憶','上手很快'],passive:['動手熟成','親自操作一次，就能把步驟與手感牢牢記住。'],active:['情境演練','在模擬場景中試做，邊行動邊掌握新知。'],ultimate:['即刻上手','把所學轉成流暢操作，面對新情境也能快速應對。']},
+ soc:{title:'隊伍召集人',role:'PARTY LEADER',form:'共學引路人 · 互動連結系',lore:'連結夥伴、講述發現，讓知識在對話與分享中越變越強。',skill:'共學連結',weapon:'🪄 羈絆徽章',color:'#0891b2',stats:[['感知','共鳴'],['記憶','互動'],['技能','教學']],traits:['樂於交流','擅長教學','互動記得牢'],passive:['對話增幅','交流中的提問與回應，會替記憶加上鮮明線索。'],active:['換句教會','試著講給夥伴聽，在分享中釐清並記住重點。'],ultimate:['群星共鳴','串聯眾人的觀點與回饋，讓知識在互動中牢牢扎根。']},
+ sys:{title:'時序工匠',role:'TIME KEEPER',form:'複習節律師 · 系統養成系',lore:'掌握複習節奏，讓每一份努力準時回歸；時間，是你的秘密隊友。',skill:'間隔循環',weapon:'⌛ 時序沙漏',color:'#7652c6',stats:[['感知','節奏'],['記憶','累積'],['技能','規劃']],traits:['習慣穩定','規劃有序','長期累積'],passive:['習慣循環','固定節奏的複習逐步累積熟悉感，讓記憶不易褪色。'],active:['間隔排程','安排合適的回顧時點，趁遺忘前重新喚醒知識。'],ultimate:['長存循環','建立持續複習的穩定節律，讓所學長久留在手邊。']},
+ cre:{title:'故事鍊金師',role:'STORY ALCHEMIST',form:'奇想編故事 · 聯想創造系',lore:'把知識釀成奇幻故事，連結越意想不到，記憶越閃耀。',skill:'聯想鍊成',weapon:'🧪 靈感藥劑',color:'#df4568',stats:[['感知','想像'],['記憶','聯想'],['技能','故事']],traits:['想像豐富','聯想靈活','故事高手'],passive:['聯想種子','新資訊遇上奇妙聯想，便長出容易回想的故事線索。'],active:['故事串接','把零散知識編成有趣情節，讓記憶連貫又鮮活。'],ultimate:['想像星圖','展開獨特聯想網絡，從一個故事入口找回整串知識。']},
+ biz:{title:'目標指揮官',role:'MISSION COMMANDER',form:'成果推進者 · 任務策略系',lore:'鎖定目標、規劃攻勢，把 deadline 變成你穩定通關的力量。',skill:'目標鎖定',weapon:'🎯 勝利羅盤',color:'#1985b7',stats:[['感知','目標'],['記憶','應用'],['技能','策略']],traits:['目標明確','行動有力','重視成果'],passive:['目標聚焦','清楚的成果方向替學習鎖定重點，讓每一步更有目的。'],active:['里程拆解','把大目標化成可完成的小任務，逐項推進看得見的成果。'],ultimate:['使命達成','集中資源完成關鍵挑戰，把所學轉化為明確成果。']},
+};
+function buildMissions(){
+ $('missionGrid').innerHTML=Object.entries(SUBJ).map(([k,s])=>`<button type="button" class="mission${k===curSubj?' on':''}" data-k="${k}" onclick="pickMission('${k}')"><span>${s.emoji}</span><b>${s.label}</b></button>`).join('');
+}
+function pickMission(key){curSubj=key;document.querySelectorAll('.mission').forEach(b=>b.classList.toggle('on',b.dataset.k===key));}
+buildMissions();
+function start(){cur=0;ans=[];answerLock=false;show('s1');renderQ();}
 function renderQ(){
   const item=Q[cur];
-  $('qNo').textContent='第 '+(cur+1)+' / '+Q.length+' 題';
-  $('qPct').textContent=Math.round((cur+1)/Q.length*100)+'%';
+  $('qNo').textContent='第 '+(cur+1)+' / '+Q.length+' 關';
+  $('qPct').textContent=Math.round((cur+1)/Q.length*100)+'% 已探索';
   $('progBar').style.width=Math.round((cur+1)/Q.length*100)+'%';
-  $('qCtx').textContent='';
+  $('qCtx').textContent=item.ctx||'冒險提示｜跟著直覺選擇最像你的方式';
   $('qText').textContent=item.q;
+  $('questName').textContent=SUBJ[curSubj].emoji+' '+SUBJ[curSubj].label+'任務';
+  $('xpCount').textContent='✨ '+(ans.filter(v=>v!==undefined).length*10)+' XP';
+  $('buddyLine').textContent=cur===11?'小狐夥伴：最後一題！選完就能召喚你的專屬職業。':(cur>0&&cur%3===2?'小狐夥伴：連續探索中！你的天賦線索越來越清楚。':'小狐夥伴：跟著直覺選，冒險家！');
   $('backBtn').style.display=cur>0?'block':'none';
   $('qOpts').innerHTML=item.o.map((o,i)=>
     `<button class="opt${ans[cur]===i?' sel':''}" onclick="pick(${i})"><span class="ic">${o[0]}</span><span>${o[1]}</span></button>`).join('');
 }
 function pick(i){
-  ans[cur]=i;
-  if(cur+1<Q.length){cur++;renderQ();}
-  else finish();
+  if(answerLock)return;
+  answerLock=true;ans[cur]=i;
+  const chosen=Q[cur].o[i];
+  $('buddyLine').textContent='記憶碎片 +10 XP！'+chosen[0]+' 線索已收進背包。';
+  $('xpCount').textContent='✨ '+(ans.filter(v=>v!==undefined).length*10)+' XP';
+  $('qOpts').querySelectorAll('button').forEach((b,index)=>{b.disabled=true;if(index===i)b.classList.add('sel','confetti');});
+  window.setTimeout(()=>{if(cur+1<Q.length){cur++;answerLock=false;renderQ();}else finish();},320);
 }
-function back(){if(cur>0){cur--;renderQ();}}
+function back(){if(cur>0&&!answerLock){cur--;renderQ();}}
 
 function finish(){
   const sc={};KEYS.forEach(k=>sc[k]=0);
@@ -343,7 +429,21 @@ function finish(){
 }
 
 function renderReport(sc,top1,top2){
-  const A=ARCH[top1], B=ARCH[top2];
+  const A=ARCH[top1], B=ARCH[top2], C=CLASS[top1], D=CLASS[top2];
+  const totalXP=ans.filter(v=>v!==undefined).length*10;
+  const cls=$('classCard');cls.style.background=`linear-gradient(135deg,${C.color},${C.color}bb 58%,#182344)`;
+  $('classEmoji').textContent=A.emoji; $('className').textContent=C.title; $('classLore').textContent=C.lore;
+  $('classForm').textContent=C.form;
+  $('classLevel').textContent='LV.'+(1+Math.floor(totalXP/60))+' · 記憶冒險者';
+  $('classBadge').textContent=C.weapon+' · '+totalXP+' XP';
+  $('classStats').innerHTML=C.stats.map(s=>`<div class="class-stat"><b>${s[1]}</b><small>${s[0]}</small></div>`).join('');
+  $('talentSummary').textContent='你的主導天賦是「'+C.form.split(' · ')[0]+'」：'+C.lore;
+  $('talentTags').innerHTML=C.traits.map(t=>`<span>✦ ${t}</span>`).join('');
+  $('skillTree').innerHTML=[['被動技能','✦',C.passive,'passive'],['主動技能','⚡',C.active,'active'],['終極技能','🌟',C.ultimate,'ultimate']].map(([kind,icon,skill,clsName])=>`<div class="skill-node ${clsName}"><div class="skill-kind">${icon} ${kind}</div><div><b>${skill[0]}</b><p>${skill[1]}</p></div></div>`).join('');
+  $('secondaryEmoji').textContent=B.emoji; $('secondaryTitle').textContent='副職解鎖｜'+D.title;
+  $('secondaryText').textContent=D.form+'：'+D.passive[0]+'——'+D.passive[1];
+  $('secondaryDetail').textContent='協同技能：'+C.skill+' × '+D.skill+'，結合主職與副職的記憶路徑。';
+  cls.classList.remove('confetti');void cls.offsetWidth;cls.classList.add('confetti');
   const h=$('hero');h.style.background=`linear-gradient(135deg,${A.color}cc,${A.color})`;
   $('hEmo').textContent=A.emoji;
   $('hName').textContent=A.name;
