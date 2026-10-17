@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MemoLingua · 記憶天份量表 🧠</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
 <style>
   :root{--primary:#182344;--accent:#55d6be;--ink:#182344;--sub:#6b7280;--line:#e8eaf2;--bg:#f4f5fb;--gold:#ffcf68;}
@@ -84,6 +85,38 @@
   .schip{padding:7px 13px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:13px;cursor:pointer;transition:.15s}
   .schip.on{border-color:var(--accent);background:#e6faf6;font-weight:700;color:var(--primary)}
   .tag{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.22);margin-top:8px}
+  .achievement-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .achievement-item{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:10px;background:#f7f8fb;opacity:.58}
+  .achievement-item.unlocked{opacity:1;background:linear-gradient(135deg,#fff9e8,#fff);border-color:#f1d99e;box-shadow:0 4px 13px #d99d2412}
+  .achievement-icon{font-size:22px;line-height:1.1}
+  .achievement-item b{display:block;font-size:12px}.achievement-item small{display:block;font-size:10px;color:var(--sub);line-height:1.45;margin-top:3px}
+  .achievement-status{display:inline-block;font-size:9px;font-weight:800;margin-top:4px;color:#987b43}
+  .achievement-item.unlocked .achievement-status{color:#a36e08}
+  .share-card-preview{container-type:inline-size;position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:1.12fr .88fr;grid-template-rows:auto minmax(0,1fr) auto;gap:2%;width:100%;aspect-ratio:1200/630;padding:3.5%;margin:10px 0 8px;border:1px solid #ffffff35;border-radius:16px;background:linear-gradient(135deg,#6755d9,#24335c 70%,#111a35);color:#fff;box-shadow:0 10px 28px #18234420}
+  .share-card-preview:before{content:"";position:absolute;z-index:-1;width:42%;aspect-ratio:1;border-radius:50%;right:-8%;top:-35%;background:#ffffff18}
+  .share-card-brand{grid-column:1/-1;font-size:clamp(8px,2.4cqw,14px);font-weight:800;letter-spacing:.13em;color:#c9fff1}
+  .share-card-left{grid-column:1;grid-row:2;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;min-width:0;min-height:0;overflow:hidden;gap:0}
+  .share-card-emoji{font-size:clamp(20px,6.3cqw,42px);line-height:1}
+  .share-card-kicker{font-size:clamp(8px,1.8cqw,11px);color:#d9e2ff;font-weight:700}
+  .share-card-title{font-size:clamp(14px,4.5cqw,28px);line-height:1.16;margin:0;color:#fff;overflow-wrap:anywhere}
+  .share-card-form{font-size:clamp(8px,2.1cqw,12px);color:#d8f7ef;font-weight:700}
+  .share-card-secondary{font-size:clamp(9px,2.4cqw,14px);font-weight:700;margin-top:0}
+  .share-card-badges{display:flex;flex-wrap:wrap;gap:3px;margin-top:0;max-height:none;overflow:visible}
+  .share-card-badges span{font-size:clamp(7px,1.9cqw,11px);background:#ffffff20;border-radius:99px;padding:2px 6px;white-space:nowrap}
+  .share-card-skills{grid-column:2;grid-row:2;display:flex;flex-direction:column;justify-content:center;gap:4%;min-width:0;padding:5%;border-radius:14px;background:#ffffff19}
+  .share-card-skills-title{font-size:clamp(9px,3.4cqw,20px);font-weight:800;margin-bottom:2%}
+  .share-skill-row{display:grid;grid-template-columns:23% 1fr;align-items:center;gap:3%;font-size:clamp(8px,2.2cqw,13px)}
+  .share-skill-row span{color:#c9fff1;font-weight:800}.share-skill-row b{font-size:clamp(9px,3cqw,18px);overflow-wrap:anywhere}
+  .share-card-footer{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:2% 4%;min-width:0}
+  .share-card-footer strong{grid-column:1/-1;font-size:clamp(10px,3.4cqw,20px)}
+  .share-card-footer span{font-size:clamp(7px,1.5cqw,9px);color:#d4def4;white-space:nowrap;letter-spacing:-.02em}
+  .share-card-footer small{font-size:clamp(7px,1.7cqw,10px);color:#d4def4;text-align:right}
+  .share-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .share-actions .btn{margin:0;padding:12px 9px;font-size:13px}
+  .share-social .btn{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .share-status{min-height:20px;font-size:12px;color:#47766d;margin:8px 0 0;text-align:center}
+  .share-note{font-size:11px;line-height:1.6;color:var(--sub);margin:8px 0}
+  @media(max-width:360px){.achievement-grid{grid-template-columns:1fr}.share-actions{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -95,7 +128,7 @@
       <div class="eyebrow">MEMOLINGUA · MEMORY QUEST</div>
       <div style="font-size:62px;margin:10px 0 2px">🧭</div>
       <h1 style="font-size:27px">你的記憶冒險，現在開始</h1>
-      <p class="muted">回答 12 道情境題，收集記憶碎片，解鎖<br><b>專屬職業角色、技能屬性與升級路線。</b></p>
+      <p class="muted">回答 24 道情境題，收集記憶碎片，解鎖<br><b>主職＋副職、技能樹、成就與分享角色卡。</b></p>
     </div>
     <div class="card" style="background:linear-gradient(135deg,#fff,#f8f7ff)">
       <h2>🎒 選擇今天的冒險任務</h2>
@@ -105,16 +138,16 @@
     <div class="card">
       <h2>🏆 通關後解鎖</h2>
       <p class="muted" style="line-height:1.9">
-        🧙 主職＋副職角色卡與專屬稱號<br>
-        ✨ 即時經驗值、天賦屬性與隱藏技能<br>
-        🗺️ 專屬學習路線、複習節奏與 30 天任務<br>
+        🧙 主職＋副職組合與專屬技能樹<br>
+        🏅 個人化解鎖成就與可分享角色卡<br>
+        🗺️ 個人學習路線與 30 天任務<br>
         🔁 你的複習節奏 + 錯誤修正方法<br>
         🎯 你的最佳應用場景<br>
         📅 你的 30 天記憶養成計畫
       </p>
     </div>
     <button class="btn" onclick="start()">⚔️ 開始記憶冒險</button>
-    <p class="muted" style="text-align:center;margin-top:14px">12 道快問快答 · 約 2 分鐘 · 完全匿名</p>
+    <p class="muted" style="text-align:center;margin-top:14px">24 道快問快答 · 約 3–4 分鐘 · 完全匿名</p>
   </div>
 
   <!-- quiz -->
@@ -164,7 +197,8 @@
     </div>
 
     <div class="card">
-      <h2>🏅 八大記憶天份得分</h2>
+      <h2>📊 八大天賦契合度</h2>
+      <p class="muted" style="font-size:11px;line-height:1.55">你的直接選擇是主要線索，相近的學習路徑會帶來小幅共鳴；契合度依各類型可選機會正規化。這是趣味探索參考，不是診斷或能力測驗。</p>
       <div id="archBars"></div>
     </div>
 
@@ -187,6 +221,43 @@
       <div id="rPlan"></div>
     </div>
    </div><!-- /reportDoc -->
+
+    <div class="card" id="achievementPanel">
+      <h2>🏅 你的冒險成就</h2>
+      <p class="muted" id="achievementIntro">完成測驗即可解鎖成就；成就描述是風格探索，不代表能力排名。</p>
+      <div class="achievement-grid" id="achievementList" aria-live="polite"></div>
+    </div>
+
+    <div class="card" id="sharePanel">
+      <h2>🃏 帶走你的記憶角色卡</h2>
+      <p class="share-note">預覽卡只顯示主職、副職、技能和成就，不含你的作答內容或分數。圖片在本機瀏覽器產生；下載或分享都由你主動選擇。</p>
+      <div id="shareCardPreview" class="share-card-preview" role="group" aria-label="你的記憶冒險分享卡預覽">
+        <div class="share-card-brand">MEMOLINGUA · MEMORY QUEST</div>
+        <div class="share-card-left">
+          <div class="share-card-emoji" id="shareEmoji"></div>
+          <div class="share-card-kicker">我的記憶職業</div>
+          <h3 class="share-card-title" id="sharePrimaryTitle"></h3>
+          <div class="share-card-form" id="sharePrimaryForm"></div>
+          <div class="share-card-secondary" id="shareSecondary"></div>
+          <div class="share-card-badges" id="shareBadges"></div>
+        </div>
+        <div class="share-card-skills"><div class="share-card-skills-title">技能樹已點亮</div><div id="shareSkills"></div></div>
+        <div class="share-card-footer"><strong>來探索你的記憶風格</strong><span id="shareCardUrl"></span><small>趣味自我探索 · 不含作答或分數</small></div>
+      </div>
+      <div class="share-actions">
+        <button class="btn" onclick="downloadShareCard(this)">⬇️ 下載 PNG 分享卡</button>
+        <button class="btn accent" onclick="shareResult()">↗️ 分享角色卡</button>
+      </div>
+      <div class="share-actions share-social">
+        <button class="btn" onclick="shareTo('threads')">Threads 分享貼文</button>
+        <button class="btn" onclick="shareTo('facebook')">Facebook 分享連結</button>
+      </div>
+      <div class="share-actions share-social">
+        <button class="btn ghost" onclick="copyShareText()">複製分享文案</button>
+        <button class="btn ghost" onclick="copyQuizLink()">複製測驗連結</button>
+      </div>
+      <p class="share-status" id="shareStatus" aria-live="polite"></p>
+    </div>
 
     <button class="btn" onclick="downloadPDF(this)">📄 下載完整報告 PDF</button>
     <a id="appLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">
@@ -370,9 +441,53 @@ const Q=[
   {q:'看到 streak 連續紀錄或進度圖，你？',ctx:'第八關｜發現你的持續力來源',o:[['🔥','很有動力想維持','sys'],['🎯','還好，比較看重用得上','biz'],['🗂️','喜歡把資料整理成表','txt'],['🏃','想趕快去對話練習','act']]},
   {q:'你最想要的學習成果是？',ctx:'第九關｜鎖定最終目標',o:[['💬','能流利對話','act'],['💼','能通過考試／職場能用','biz'],['🧑‍🏫','能教別人、分享','soc'],['📈','能有系統地長期累積','sys']]},
   {q:'背一組句型，你會？',ctx:'第十關｜打造你的記憶連結',o:[['🖼️','想像使用的畫面','img'],['🔊','唸出來聽節奏','snd'],['📋','整理成表格或規則','txt'],['📚','編成一個小故事','cre']]},
-  {q:'你最喜歡哪種單字記法？',ctx:'第十一關｜收集最後的記憶碎片',o:[['🎴','圖像聯想卡','img'],['🔁','音檔循環','snd'],['🏰','記憶宮殿、故事','cre'],['👫','教別人或造對話','soc']]},
-  {q:'你理想的學習陪伴是？',ctx:'最終關卡｜準備好召喚你的職業了嗎？',o:[['📅','給我數據和複習排程','sys'],['🎯','給我真實任務和場景','act'],['🗣️','給我口說陪跑夥伴','soc'],['💼','給我目標導向的計畫','biz']]},
+  {q:'你最喜歡哪種單字記法？',ctx:'第十一關｜收集記憶碎片',o:[['🎴','圖像聯想卡','img'],['🔁','音檔循環','snd'],['🏰','記憶宮殿、故事','cre'],['👫','教別人或造對話','soc']]},
+  {q:'你理想的學習陪伴是？',ctx:'第十二關｜安排你的學習隊伍',o:[['📅','給我數據和複習排程','sys'],['🎯','給我真實任務和場景','act'],['🗣️','給我口說陪跑夥伴','soc'],['💼','給我目標導向的計畫','biz']]},
+  {q:'回想一段旅程，你最先想起什麼？',ctx:'第十三關｜打開回憶地圖',o:[['🗺️','街道長相、顏色與方位','img'],['🎶','當時聽見的聲音或語氣','snd'],['📖','旅程中發生的故事','cre'],['📝','行程與地點筆記','txt']]},
+  {q:'學會一個新概念後，你怎麼確認自己懂了？',ctx:'第十四關｜檢查技能熟練度',o:[['🧪','動手做一次小實驗','act'],['🗣️','講給朋友聽並回答問題','soc'],['📅','隔天再測一次自己','sys'],['🎯','拿它完成一個實際目標','biz']]},
+  {q:'遇到一大段陌生內容，你會先怎麼整理？',ctx:'第十五關｜破解資訊迷宮',o:[['📋','拆段落、列標題和關鍵詞','txt'],['🎨','把段落畫成簡單圖解','img'],['🎧','先聽一遍抓整體語氣','snd'],['✨','找出主線，編成好記的故事','cre']]},
+  {q:'安排一週學習，你最可能採用哪一種節奏？',ctx:'第十六關｜配置你的時間裝備',o:[['🔁','每天固定短練並追蹤紀錄','sys'],['🏁','先訂成果，再倒推每天任務','biz'],['🎭','每次安排一個可以完成的實作','act'],['👫','排一段時間和同伴互相分享','soc']]},
+  {q:'要記住一串零散資訊，你最想試哪種方法？',ctx:'第十七關｜組合記憶碎片',o:[['📚','把它們串成一段奇妙故事','cre'],['🎵','編成押韻節拍或口訣','snd'],['🧩','替每個概念做圖像聯想','img'],['🕹️','放進一個情境任務裡操作','act']]},
+  {q:'練習卡關時，哪個做法最像你？',ctx:'第十八關｜遇見關卡怎麼辦',o:[['🤝','找人一起討論或示範給我看','soc'],['🔍','把規則與步驟拆開檢查','txt'],['🔧','直接多做幾次找出手感','act'],['🖼️','找圖、示意圖或空間線索','img']]},
+  {q:'哪種回饋最能讓你想繼續練習？',ctx:'第十九關｜收集你的動力來源',o:[['🔥','看到連續紀錄和累積進度','sys'],['🏆','知道自己離目標又近了一步','biz'],['💬','有人跟我交流、一起進步','soc'],['🪄','發現新的聯想或有趣解法','cre']]},
+  {q:'你剛學會一個實用句型，最可能怎麼分享？',ctx:'第二十關｜把技能帶進對話',o:[['👩‍🏫','教朋友並用自己的話解釋','soc'],['🎙️','唸出來錄音、聽語調','snd'],['✍️','寫下用法和例句整理成筆記','txt'],['🎬','立刻拿去演一段對話','act']]},
+  {q:'準備一場重要挑戰，你會先做什麼？',ctx:'第二十一關｜鎖定下一個任務',o:[['🎯','確認目標、期限和完成標準','biz'],['🗓️','排好分段複習與檢核時間','sys'],['📊','整理題型規則和容易錯的地方','txt'],['📜','把重點改寫成一段冒險故事','cre']]},
+  {q:'碰到新單字，你想用什麼方式把它連到生活？',ctx:'第二十二關｜替知識找到座標',o:[['🌈','想像它出現在熟悉場景的畫面','img'],['🧠','把它接到一個有趣的聯想','cre'],['🧍','在生活情境中實際說一次','act'],['🔊','聽發音並模仿幾種語調','snd']]},
+  {q:'行程變忙、時間變少時，你會怎麼維持學習？',ctx:'第二十三關｜突發事件應變',o:[['⏱️','縮短每次練習，但維持固定節奏','sys'],['📌','只練最靠近目標的重點','biz'],['🧩','用一個小任務邊做邊學','act'],['📝','先留下清楚的筆記，方便接續','txt']]},
+  {q:'完成一段學習後，哪種收尾最讓你有成就感？',ctx:'最終關卡｜點亮你的技能樹',o:[['📣','和夥伴分享自己學會了什麼','soc'],['🎨','創作一段自己的故事或作品','cre'],['🎮','把技能用在一個真實挑戰','act'],['🏅','完成清單上的明確里程碑','biz']]},
 ];
+
+// 直接選擇計 1 點；相近學習路徑提供小幅共鳴分。正規化時以每題可得最高分作分母。
+const ECHO={img:{cre:.16,txt:.08},snd:{soc:.16,cre:.08},txt:{sys:.16,img:.08},act:{soc:.12,biz:.16},
+  soc:{snd:.16,act:.12},sys:{txt:.16,biz:.08},cre:{img:.16,snd:.08},biz:{act:.16,sys:.08}};
+const ACHIEVEMENTS=[
+ {id:'clear',icon:'🗝️',name:'冒險啟程',hint:'完成全部 24 關，首次揭曉你的記憶職業。',test:()=>ans.length===Q.length},
+ {id:'focus',icon:'🎯',name:'主場發光',hint:'主職契合度達 72%，且領先第二名至少 12%。',test:(p,d,r)=>p[r[0]]>=.72&&p[r[0]]-p[r[1]]>=.12},
+ {id:'duet',icon:'🎼',name:'雙頻共鳴',hint:'副職至少有 3 題呼應，主副職合計至少 9 題，且輪廓相近。',test:(p,d,r)=>d[r[1]]>=3&&d[r[0]]+d[r[1]]>=9&&p[r[0]]-p[r[1]]<=.20},
+ {id:'trio',icon:'🔺',name:'三系共鳴',hint:'前三種天賦各有至少 2 題呼應，展現多路並行的輪廓。',test:(p,d,r)=>r.slice(0,3).every(k=>d[k]>=2)&&p[r[0]]-p[r[2]]<=.22},
+ {id:'toolbox',icon:'🧰',name:'百變工具箱',hint:'至少四種天賦各有 2 題以上呼應。',test:(p,d)=>KEYS.filter(k=>d[k]>=2).length>=4},
+ {id:'wide',icon:'🌈',name:'八路巡禮',hint:'八種天賦都至少出現 1 題，探索多元的記憶路徑。',test:(p,d)=>KEYS.every(k=>d[k]>=1)}
+];
+
+function scoreAnswerSet(answerSet){
+ const direct={};const weighted={};const ceiling={};KEYS.forEach(k=>{direct[k]=0;weighted[k]=0;ceiling[k]=0;});
+ const vectorFor=option=>{const vec={};KEYS.forEach(k=>vec[k]=0);const key=option[2],w=Number.isFinite(option[3])?option[3]:1;vec[key]+=w;
+   Object.entries(ECHO[key]||{}).forEach(([other,bonus])=>vec[other]+=w*bonus);return vec;};
+ Q.forEach((item,qi)=>{
+   const vectors=item.o.map(vectorFor);
+   KEYS.forEach(k=>ceiling[k]+=Math.max(...vectors.map(v=>v[k])));
+   const selected=item.o[answerSet[qi]];if(!selected)return;
+   direct[selected[2]]++;
+   const vec=vectorFor(selected);KEYS.forEach(k=>weighted[k]+=vec[k]);
+ });
+ const profile={};KEYS.forEach(k=>profile[k]=ceiling[k]>0?Math.max(0,Math.min(1,weighted[k]/ceiling[k])):0);
+ return {direct,weighted,ceiling,profile};
+}
+function rankProfile(profile,direct){return KEYS.slice().sort((a,b)=>profile[b]-profile[a]||direct[b]-direct[a]||KEYS.indexOf(a)-KEYS.indexOf(b));}
+function unlockedAchievements(profile,direct){
+ const ranking=rankProfile(profile,direct);
+ return ACHIEVEMENTS.filter(a=>a.id==='clear'?a.test():a.test(profile,direct,ranking)).map(a=>a.id);
+}
 
 let cur=0, ans=[], radar, answerLock=false;
 const $=id=>document.getElementById(id);
@@ -402,7 +517,7 @@ function renderQ(){
   $('qText').textContent=item.q;
   $('questName').textContent=SUBJ[curSubj].emoji+' '+SUBJ[curSubj].label+'任務';
   $('xpCount').textContent='✨ '+(ans.filter(v=>v!==undefined).length*10)+' XP';
-  $('buddyLine').textContent=cur===11?'小狐夥伴：最後一題！選完就能召喚你的專屬職業。':(cur>0&&cur%3===2?'小狐夥伴：連續探索中！你的天賦線索越來越清楚。':'小狐夥伴：跟著直覺選，冒險家！');
+  $('buddyLine').textContent=cur===Q.length-1?'小狐夥伴：最後一題！選完就能召喚你的專屬職業。':(cur>0&&cur%3===2?'小狐夥伴：連續探索中！你的天賦線索越來越清楚。':'小狐夥伴：跟著直覺選，冒險家！');
   $('backBtn').style.display=cur>0?'block':'none';
   $('qOpts').innerHTML=item.o.map((o,i)=>
     `<button class="opt${ans[cur]===i?' sel':''}" onclick="pick(${i})"><span class="ic">${o[0]}</span><span>${o[1]}</span></button>`).join('');
@@ -419,16 +534,16 @@ function pick(i){
 function back(){if(cur>0&&!answerLock){cur--;renderQ();}}
 
 function finish(){
-  const sc={};KEYS.forEach(k=>sc[k]=0);
-  ans.forEach((i,qi)=>{const key=Q[qi].o[i][2];sc[key]++;});
-  const sorted=KEYS.slice().sort((a,b)=>sc[b]-sc[a]);
-  const top1=sorted[0], top2=sorted[1];
-  window._result={sc,top1,top2};
-  renderReport(sc,top1,top2);
+  if(ans.length!==Q.length||ans.some(v=>!Number.isInteger(v)))return;
+  const {direct:sc,profile}=scoreAnswerSet(ans);
+  const sorted=rankProfile(profile,sc);
+  const top1=sorted[0], top2=sorted[1], achievements=unlockedAchievements(profile,sc);
+  window._result={sc,profile,top1,top2,achievements};
+  renderReport(sc,top1,top2,profile,achievements);
   show('s2');
 }
 
-function renderReport(sc,top1,top2){
+function renderReport(sc,top1,top2,profile={},achievements=[]){
   const A=ARCH[top1], B=ARCH[top2], C=CLASS[top1], D=CLASS[top2];
   const totalXP=ans.filter(v=>v!==undefined).length*10;
   const cls=$('classCard');cls.style.background=`linear-gradient(135deg,${C.color},${C.color}bb 58%,#182344)`;
@@ -459,11 +574,11 @@ function renderReport(sc,top1,top2){
     data:{labels:['視覺','聽覺','文字','動作'],datasets:[{label:'輸入偏好',data:inpPct,
       borderColor:A.color,backgroundColor:A.color+'25',borderWidth:2,pointBackgroundColor:A.color}]},
     options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},pointLabels:{font:{size:13}}}}}});
-  // arch bars
-  const max=Math.max(...KEYS.map(k=>sc[k]))||1;
-  $('archBars').innerHTML=KEYS.slice().sort((a,b)=>sc[b]-sc[a]).map(k=>{
-    const A2=ARCH[k],w=Math.round(sc[k]/max*100),isTop=(k===top1||k===top2);
-    return `<div class="barrow"><div class="barlab"><span>${A2.emoji} ${A2.name}${isTop?' ⭐':''}</span><span style="color:${A2.color};font-weight:700">${sc[k]}</span></div><div class="bartrack"><div style="width:${w}%;background:${A2.color};opacity:${isTop?1:.45}"></div></div></div>`;
+  // 天賦契合度使用每題可得上限正規化，降低不同選項曝光次數造成的偏差。
+  const fit=KEYS.map(k=>Number.isFinite(profile[k])?profile[k]:0),maxFit=Math.max(...fit)||1;
+  $('archBars').innerHTML=KEYS.slice().sort((a,b)=>profile[b]-profile[a]||sc[b]-sc[a]).map(k=>{
+    const A2=ARCH[k],pct=Math.round((profile[k]||0)*100),w=Math.round((profile[k]||0)/maxFit*100),isTop=(k===top1||k===top2);
+    return `<div class="barrow"><div class="barlab"><span>${A2.emoji} ${A2.name}${isTop?' ⭐':''}</span><span style="color:${A2.color};font-weight:700">${pct}%</span></div><div class="bartrack"><div style="width:${w}%;background:${A2.color};opacity:${isTop?1:.45}"></div></div></div>`;
   }).join('');
   // sections
   const combo=top1!==top2?`你是「${A.name} + ${B.name}」型學習者。`:`你是「${A.name}」型學習者。`;
@@ -484,6 +599,73 @@ function renderReport(sc,top1,top2){
     body:JSON.stringify({exercise_id:'__toapp__',mode:'funnel',talent:top1,event:'open',source:'github-pages'})}).catch(()=>{}); }catch(e){} };
   $('bookLink').href='training.html#'+top1;
   $('playLink').href='play.html?talent='+top1;   // 帶天賦進訓練場 → 置頂顯示專屬推薦
+  renderAchievementPanel(achievements);
+  drawShareCard();
+}
+
+function renderAchievementPanel(unlocked){
+ const set=new Set(unlocked||[]);
+ $('achievementIntro').textContent=`你解鎖了 ${set.size} / ${ACHIEVEMENTS.length} 個成就。這些徽章描述本次作答呈現的風格線索，不是能力或人格診斷。`;
+ $('achievementList').innerHTML=ACHIEVEMENTS.map(a=>{const earned=set.has(a.id);return `<div class="achievement-item${earned?' unlocked':''}"><span class="achievement-icon">${a.icon}</span><div><b>${a.name}</b><small>${a.hint}</small><span class="achievement-status">${earned?'✓ 已解鎖':'尚未解鎖'}</span></div></div>`;}).join('');
+}
+const SHARE_URL='https://jjfishjj.github.io/memolingua/scale.html';
+function shareMessage(){
+ const r=window._result;if(!r)return '';
+ const primary=CLASS[r.top1],secondary=CLASS[r.top2];
+ const badges=(r.achievements||[]).map(id=>ACHIEVEMENTS.find(a=>a.id===id)?.name).filter(Boolean).slice(0,3);
+ return `我在 MemoLingua 解鎖了「${primary.title}」主職 ×「${secondary.title}」副職！${badges.length?' 成就：'+badges.join('、')+'。':''}也來測測你的記憶冒險角色：${SHARE_URL}（趣味自我探索，結果僅供參考）`;
+}
+function drawShareCard(){
+ const r=window._result;if(!r)return;
+ const A=CLASS[r.top1],B=CLASS[r.top2],ach=(r.achievements||[]).map(id=>ACHIEVEMENTS.find(a=>a.id===id)?.name).filter(Boolean).slice(0,3);
+ $('shareCardPreview').style.background=`linear-gradient(135deg,${A.color},#24335c 70%,#111a35)`;
+ $('shareEmoji').textContent=ARCH[r.top1].emoji;$('sharePrimaryTitle').textContent=A.title;$('sharePrimaryForm').textContent=A.form;
+ $('shareSecondary').textContent='副職  '+ARCH[r.top2].emoji+' '+B.title;
+ $('shareSkills').innerHTML=[["被動",A.passive[0]],["主動",A.active[0]],["終極",A.ultimate[0]]].map(([kind,name])=>`<div class="share-skill-row"><span>${kind}</span><b>${name}</b></div>`).join('');
+ $('shareBadges').innerHTML=(ach.length?ach:['完成探索']).map(name=>`<span>✦ ${name}</span>`).join('');
+ $('shareCardUrl').textContent=SHARE_URL.replace(/^https?:\/\//,'');
+}
+async function renderShareCardPNG(){
+ const el=$('shareCardPreview');if(typeof html2canvas==='undefined')throw new Error('分享卡圖片元件尚未載入');
+ const width=Math.max(1,el.getBoundingClientRect().width),scale=Math.max(2,1200/width);
+ const canvas=await html2canvas(el,{scale,backgroundColor:null,useCORS:false,logging:false});
+ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('無法產生 PNG')),'image/png'));
+}
+async function downloadShareCard(btn){
+ const label=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='正在產生 PNG…';}
+ try{const blob=await renderShareCardPNG(),url=URL.createObjectURL(blob),a=document.createElement('a');a.download='MemoLingua_'+CLASS[window._result.top1].title+'_分享卡.png';a.href=url;a.click();setTimeout(()=>URL.revokeObjectURL(url),1200);$('shareStatus').textContent='角色卡已在你的裝置下載。';}
+ catch(e){$('shareStatus').textContent='目前無法產生 PNG，請改用分享文案或複製連結。';}
+ finally{if(btn){btn.disabled=false;btn.textContent=label;}}
+}
+async function shareResult(){
+ const text=shareMessage();
+ try{
+   if(!navigator.share){await copyShareText();return;}
+   let file=null;try{const blob=await renderShareCardPNG();file=new File([blob],'MemoLingua-memory-card.png',{type:'image/png'});}catch(e){file=null;}
+   if(file&&navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:'我的記憶職業卡',text});
+   else await navigator.share({title:'我的記憶職業卡',text,url:SHARE_URL});
+   $('shareStatus').textContent='分享面板已開啟，確認內容後再發布即可。';
+ }catch(e){if(e&&e.name==='AbortError')return;await copyShareText();}
+}
+function shareTo(platform){
+ const text=shareMessage();let url='';
+ if(platform==='threads')url='https://www.threads.net/intent/post?text='+encodeURIComponent(text);
+ else if(platform==='facebook')url='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(SHARE_URL)+'&quote='+encodeURIComponent(text);
+ else return;
+ window.open(url,'_blank','noopener,noreferrer');
+ $('shareStatus').textContent='已開啟 '+(platform==='threads'?'Threads':'Facebook')+' 分享頁；請自行確認並發布。';
+}
+async function copyText(text){
+ if(navigator.clipboard&&navigator.clipboard.writeText){try{await navigator.clipboard.writeText(text);return true;}catch(e){/* 權限拒絕時改用傳統剪貼簿 API */}}
+ const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;
+}
+async function copyShareText(){
+ try{const ok=await copyText(shareMessage());$('shareStatus').textContent=ok?'分享文案與測驗連結已複製。':'複製未成功，請使用下載分享卡。';}
+ catch(e){$('shareStatus').textContent='無法存取剪貼簿，請下載 PNG 分享卡。';}
+}
+async function copyQuizLink(){
+ try{const ok=await copyText(SHARE_URL);$('shareStatus').textContent=ok?'測驗網址已複製。':'複製未成功，請手動使用正式網址。';}
+ catch(e){$('shareStatus').textContent='無法存取剪貼簿，正式網址為 '+SHARE_URL;}
 }
 
 /* ===== 下載 PDF 個人報告 ===== */
