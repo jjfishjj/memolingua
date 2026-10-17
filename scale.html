@@ -46,6 +46,17 @@
   .class-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:17px}
   .class-stat{background:#ffffff18;border-radius:12px;padding:8px;text-align:center}
   .class-stat b{display:block;font-size:16px}.class-stat small{font-size:10px;opacity:.8}
+  .class-form{display:inline-flex;align-items:center;border-radius:99px;background:#ffffff20;border:1px solid #ffffff38;padding:4px 9px;margin:8px 0 1px;font-size:11px;font-weight:700;letter-spacing:.02em}
+  .talent-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+  .talent-tags span{font-size:11px;color:#39514d;background:#eaf8f4;border:1px solid #d7f0e9;border-radius:99px;padding:5px 9px}
+  .skill-tree{display:grid;gap:8px;margin-top:12px}
+  .skill-node{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:start;background:#f8f9fc;border:1px solid var(--line);border-radius:14px;padding:11px}
+  .skill-kind{font-size:10px;letter-spacing:.08em;font-weight:800;color:#64748b;padding-top:2px}
+  .skill-node b{display:block;font-size:13px;color:var(--ink)}
+  .skill-node p{margin:3px 0 0;color:#586174;font-size:12px;line-height:1.55}
+  .skill-node.active{background:#f0fbf8;border-color:#d5f1e9}
+  .skill-node.ultimate{background:#fff8e9;border-color:#f6e7c5}
+  .secondary-detail{font-size:11px;color:#627086;margin-top:4px}
   .unlock{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:17px;padding:13px;margin:0 0 14px}
   .unlock .mini{font-size:30px}.unlock b{font-size:13px}.unlock p{margin:2px 0 0;color:var(--sub);font-size:11px}
   .confetti{animation:pop .38s cubic-bezier(.2,1.6,.4,1)}
@@ -125,11 +136,19 @@
       <div class="class-emoji" id="classEmoji">🧙</div>
       <div class="class-title">MEMORY QUEST · 你的專屬職業</div>
       <h1 id="className">記憶冒險家</h1>
+      <div class="class-form" id="classForm">天賦形態</div>
       <div class="class-lore" id="classLore"></div>
       <div class="class-meta"><span id="classLevel">LV.1 新手冒險者</span><span id="classBadge">✨ 天賦已覺醒</span></div>
       <div class="class-stats" id="classStats"></div>
     </div>
-    <div class="unlock"><span class="mini" id="secondaryEmoji">🛡️</span><div><b id="secondaryTitle">副職技能解鎖</b><p id="secondaryText"></p></div></div>
+    <div class="card">
+      <h2>🌟 你的天賦刻印</h2>
+      <div class="muted" id="talentSummary"></div>
+      <div class="talent-tags" id="talentTags"></div>
+      <h2 style="margin-top:14px">📖 專屬技能樹</h2>
+      <div class="skill-tree" id="skillTree"></div>
+    </div>
+    <div class="unlock"><span class="mini" id="secondaryEmoji">🛡️</span><div><b id="secondaryTitle">副職解鎖</b><p id="secondaryText"></p><div class="secondary-detail" id="secondaryDetail"></div></div></div>
     <div class="hero" id="hero">
       <div class="em" id="hEmo">🧠</div>
       <div style="opacity:.8;font-size:12px;margin-top:6px">你的記憶天份</div>
@@ -359,14 +378,14 @@ let cur=0, ans=[], radar, answerLock=false;
 const $=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);};
 const CLASS={
- img:{title:'星圖幻術師',role:'ILLUSIONIST',lore:'把畫面、色彩與空間化成記憶魔法；看見線索，你就能召喚知識。',skill:'星圖映記',weapon:'✨ 星象法典',color:'#6755d9',stats:[['感知','視覺'],['記憶','圖像'],['技能','心智圖']]},
- snd:{title:'共鳴吟遊詩人',role:'BARD',lore:'用旋律、節奏與語調施展共鳴；一句話在耳邊迴盪，就不會走失。',skill:'聲波迴響',weapon:'🎼 共鳴豎琴',color:'#d94691',stats:[['感知','聽覺'],['記憶','節奏'],['技能','跟讀']]},
- txt:{title:'符文策略師',role:'RUNE MAGE',lore:'拆解規則、排列線索，把複雜知識寫成一眼看懂的符文地圖。',skill:'知識編碼',weapon:'📜 秘典卷軸',color:'#15966f',stats:[['感知','邏輯'],['記憶','結構'],['技能','整理']]},
- act:{title:'沉浸探險家',role:'EXPLORER',lore:'把每次練習變成實戰任務；親手走過的路，就是最牢固的地圖。',skill:'情境突破',weapon:'🗡️ 任務短刃',color:'#e28a19',stats:[['感知','行動'],['記憶','體驗'],['技能','實作']]},
- soc:{title:'隊伍召集人',role:'PARTY LEADER',lore:'連結夥伴、講述發現，讓知識在對話與分享中越變越強。',skill:'共學連結',weapon:'🪄 羈絆徽章',color:'#0891b2',stats:[['感知','共鳴'],['記憶','互動'],['技能','教學']]},
- sys:{title:'時序工匠',role:'TIME KEEPER',lore:'掌握複習節奏，讓每一份努力準時回歸；時間，是你的秘密隊友。',skill:'間隔循環',weapon:'⌛ 時序沙漏',color:'#7652c6',stats:[['感知','節奏'],['記憶','累積'],['技能','規劃']]},
- cre:{title:'故事鍊金師',role:'STORY ALCHEMIST',lore:'把知識釀成奇幻故事，連結越意想不到，記憶越閃耀。',skill:'聯想鍊成',weapon:'🧪 靈感藥劑',color:'#df4568',stats:[['感知','想像'],['記憶','聯想'],['技能','故事']]},
- biz:{title:'目標指揮官',role:'MISSION COMMANDER',lore:'鎖定目標、規劃攻勢，把 deadline 變成你穩定通關的力量。',skill:'目標鎖定',weapon:'🎯 勝利羅盤',color:'#1985b7',stats:[['感知','目標'],['記憶','應用'],['技能','策略']]},
+ img:{title:'星圖幻術師',role:'ILLUSIONIST',form:'映像拾光者 · 視覺構圖系',lore:'把畫面、色彩與空間化成記憶魔法；看見線索，你就能召喚知識。',skill:'星圖映記',weapon:'✨ 星象法典',color:'#6755d9',stats:[['感知','視覺'],['記憶','圖像'],['技能','心智圖']],traits:['看圖記得快','細節敏銳','擅長空間'],passive:['視線定錨','把關鍵畫面轉成記憶座標，回想時更容易找回細節。'],active:['色彩速描','用形狀與色彩快速標記重點，讓資訊一眼成形。'],ultimate:['全景回放','串起零散畫面，重現一段完整而清晰的記憶。']},
+ snd:{title:'共鳴吟遊詩人',role:'BARD',form:'節拍聆聽者 · 聲韻節奏系',lore:'用旋律、節奏與語調施展共鳴；一句話在耳邊迴盪，就不會走失。',skill:'聲波迴響',weapon:'🎼 共鳴豎琴',color:'#d94691',stats:[['感知','聽覺'],['記憶','節奏'],['技能','跟讀']],traits:['聽覺敏銳','節奏感佳','口訣高手'],passive:['韻律留聲','旋律與節奏替資訊打拍子，聽過的內容更容易留存。'],active:['節奏拆解','把長段內容切成短拍，跟著節奏迅速記牢。'],ultimate:['共鳴回響','喚回熟悉的聲音線索，讓重點接連浮現。']},
+ txt:{title:'符文策略師',role:'RUNE MAGE',form:'脈絡編目師 · 文字邏輯系',lore:'拆解規則、排列線索，把複雜知識寫成一眼看懂的符文地圖。',skill:'知識編碼',weapon:'📜 秘典卷軸',color:'#15966f',stats:[['感知','邏輯'],['記憶','結構'],['技能','整理']],traits:['善於整理','邏輯清晰','筆記達人'],passive:['條理歸檔','替資訊分類排序，讓知識各有位置、需要時隨取隨用。'],active:['重點摘錄','把繁雜內容濃縮成清楚筆記，快速掌握核心。'],ultimate:['知識索引','依關鍵詞與脈絡搜尋，精準找回所需答案。']},
+ act:{title:'沉浸探險家',role:'EXPLORER',form:'情境實踐家 · 行動體驗系',lore:'把每次練習變成實戰任務；親手走過的路，就是最牢固的地圖。',skill:'情境突破',weapon:'🗡️ 任務短刃',color:'#e28a19',stats:[['感知','行動'],['記憶','體驗'],['技能','實作']],traits:['喜歡實作','情境記憶','上手很快'],passive:['動手熟成','親自操作一次，就能把步驟與手感牢牢記住。'],active:['情境演練','在模擬場景中試做，邊行動邊掌握新知。'],ultimate:['即刻上手','把所學轉成流暢操作，面對新情境也能快速應對。']},
+ soc:{title:'隊伍召集人',role:'PARTY LEADER',form:'共學引路人 · 互動連結系',lore:'連結夥伴、講述發現，讓知識在對話與分享中越變越強。',skill:'共學連結',weapon:'🪄 羈絆徽章',color:'#0891b2',stats:[['感知','共鳴'],['記憶','互動'],['技能','教學']],traits:['樂於交流','擅長教學','互動記得牢'],passive:['對話增幅','交流中的提問與回應，會替記憶加上鮮明線索。'],active:['換句教會','試著講給夥伴聽，在分享中釐清並記住重點。'],ultimate:['群星共鳴','串聯眾人的觀點與回饋，讓知識在互動中牢牢扎根。']},
+ sys:{title:'時序工匠',role:'TIME KEEPER',form:'複習節律師 · 系統養成系',lore:'掌握複習節奏，讓每一份努力準時回歸；時間，是你的秘密隊友。',skill:'間隔循環',weapon:'⌛ 時序沙漏',color:'#7652c6',stats:[['感知','節奏'],['記憶','累積'],['技能','規劃']],traits:['習慣穩定','規劃有序','長期累積'],passive:['習慣循環','固定節奏的複習逐步累積熟悉感，讓記憶不易褪色。'],active:['間隔排程','安排合適的回顧時點，趁遺忘前重新喚醒知識。'],ultimate:['長存循環','建立持續複習的穩定節律，讓所學長久留在手邊。']},
+ cre:{title:'故事鍊金師',role:'STORY ALCHEMIST',form:'奇想編故事 · 聯想創造系',lore:'把知識釀成奇幻故事，連結越意想不到，記憶越閃耀。',skill:'聯想鍊成',weapon:'🧪 靈感藥劑',color:'#df4568',stats:[['感知','想像'],['記憶','聯想'],['技能','故事']],traits:['想像豐富','聯想靈活','故事高手'],passive:['聯想種子','新資訊遇上奇妙聯想，便長出容易回想的故事線索。'],active:['故事串接','把零散知識編成有趣情節，讓記憶連貫又鮮活。'],ultimate:['想像星圖','展開獨特聯想網絡，從一個故事入口找回整串知識。']},
+ biz:{title:'目標指揮官',role:'MISSION COMMANDER',form:'成果推進者 · 任務策略系',lore:'鎖定目標、規劃攻勢，把 deadline 變成你穩定通關的力量。',skill:'目標鎖定',weapon:'🎯 勝利羅盤',color:'#1985b7',stats:[['感知','目標'],['記憶','應用'],['技能','策略']],traits:['目標明確','行動有力','重視成果'],passive:['目標聚焦','清楚的成果方向替學習鎖定重點，讓每一步更有目的。'],active:['里程拆解','把大目標化成可完成的小任務，逐項推進看得見的成果。'],ultimate:['使命達成','集中資源完成關鍵挑戰，把所學轉化為明確成果。']},
 };
 function buildMissions(){
  $('missionGrid').innerHTML=Object.entries(SUBJ).map(([k,s])=>`<button type="button" class="mission${k===curSubj?' on':''}" data-k="${k}" onclick="pickMission('${k}')"><span>${s.emoji}</span><b>${s.label}</b></button>`).join('');
@@ -414,11 +433,16 @@ function renderReport(sc,top1,top2){
   const totalXP=ans.filter(v=>v!==undefined).length*10;
   const cls=$('classCard');cls.style.background=`linear-gradient(135deg,${C.color},${C.color}bb 58%,#182344)`;
   $('classEmoji').textContent=A.emoji; $('className').textContent=C.title; $('classLore').textContent=C.lore;
+  $('classForm').textContent=C.form;
   $('classLevel').textContent='LV.'+(1+Math.floor(totalXP/60))+' · 記憶冒險者';
   $('classBadge').textContent=C.weapon+' · '+totalXP+' XP';
   $('classStats').innerHTML=C.stats.map(s=>`<div class="class-stat"><b>${s[1]}</b><small>${s[0]}</small></div>`).join('');
+  $('talentSummary').textContent='你的主導天賦是「'+C.form.split(' · ')[0]+'」：'+C.lore;
+  $('talentTags').innerHTML=C.traits.map(t=>`<span>✦ ${t}</span>`).join('');
+  $('skillTree').innerHTML=[['被動技能','✦',C.passive,'passive'],['主動技能','⚡',C.active,'active'],['終極技能','🌟',C.ultimate,'ultimate']].map(([kind,icon,skill,clsName])=>`<div class="skill-node ${clsName}"><div class="skill-kind">${icon} ${kind}</div><div><b>${skill[0]}</b><p>${skill[1]}</p></div></div>`).join('');
   $('secondaryEmoji').textContent=B.emoji; $('secondaryTitle').textContent='副職解鎖｜'+D.title;
-  $('secondaryText').textContent='融合「'+C.skill+'」與「'+D.skill+'」，組成你的混合天賦流派。';
+  $('secondaryText').textContent=D.form+'：'+D.passive[0]+'——'+D.passive[1];
+  $('secondaryDetail').textContent='協同技能：'+C.skill+' × '+D.skill+'，結合主職與副職的記憶路徑。';
   cls.classList.remove('confetti');void cls.offsetWidth;cls.classList.add('confetti');
   const h=$('hero');h.style.background=`linear-gradient(135deg,${A.color}cc,${A.color})`;
   $('hEmo').textContent=A.emoji;
